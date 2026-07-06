@@ -1,65 +1,68 @@
 ## C Coding Style Conventions
-
+I do not wollow raylib conventions, but mine differ slightly. And as you might tell, I love snake_case.
 Code element | Convention | Example
 --- | :---: | ---
-Defines | ALL_CAPS | `#define PLATFORM_DESKTOP`
-Macros | ALL_CAPS | `#define MIN(a,b) (((a)<(b))?(a):(b))`
-Variables | lowerCase | `int screenWidth = 0;`, `float targetFrameTime = 0.016f;`
-Local variables | lowerCase | `Vector2 playerPosition = { 0 };`
-Global variables | lowerCase | `bool fullscreen = false;`
-Constants | lowerCase | `const int maxValue = 8;`
-Pointers | MyType *pointer | `Texture2D *array = NULL;`
+Defines | SCREAMING_SNAKE_CASE | `#define PLATFORM_DESKTOP`
+Macros | SCREAMING_SNAKE_CASE | `#define MIN(a,b) (((a)<(b))?(a):(b))`
+Variables | snake_case | `int screen_width = 0;`, `float target_frame_time = 0.016f;`
+Local variables | snake_case | `Vector2 player_position = { 0 };`
+Global variables | snake_case | `bool fullscreen = false;`
+Constants | snake_case | `const int max_value = 8;`
+Pointers | MyType* pointer | `Texture2D* array = NULL;`
 float values | always x.xf | `float gravity = 10.0f`
-Operators | value1*value2 | `int product = value*6;`
-Operators | value1/value2 | `int division = value/4;`
+Operators | value1 * value2 | `int product = value * 6;`
+Operators | value1 / value2 | `int division = value / 4;`
 Operators | value1 + value2 | `int sum = value + 10;`
 Operators | value1 - value2 | `int res = value - 5;`
 Enum | TitleCase | `enum TextureFormat`
-Enum members | ALL_CAPS | `PIXELFORMAT_UNCOMPRESSED_R8G8B8`
+Enum members | SCREAMING_SNAKE_CASE | `PIXELFORMAT_UNCOMPRESSED_R8G8B8`
 Struct | TitleCase | `struct Texture2D`, `struct Material`
 Struct typedef | TitleCase | `typedef struct Texture { ... } Texture;`
-Struct members | lowerCase | `texture.width`, `color.r`
-Functions | TitleCase | `InitWindow()`, `LoadImageFromMemory()`
-Functions params | lowerCase | `width`, `height`
+Struct members | snake_case | `texture.width`, `color.r`
+Functions | snake_case | `init_window()`, `load_image_from_memory()`
+Functions params | snake_case | `width`, `height`
 Ternary Operator | (condition)? result1 : result2 | `printf("Value is 0: %s", (value == 0)? "yes" : "no");`
 
 Other conventions:
  - All defined variables are ALWAYS initialized
- - Four spaces are used, instead of TABS
+ - Two spaces are used, instead of TABS
  - Trailing spaces are always avoided
- - Control flow statements are followed **by a space**:
 ```c
-if (condition) value = 0;
+if (condition) {
+  value = 0;
+}
 
-while (!WindowShouldClose())
-{
+while (!window_should_close()) {
 
 }
 
-for (int i = 0; i < NUM_VALUES; i++) printf("%i", i);
+for (int i = 0; i < NUM_VALUES; i++) {
+  printf("%i", i)
+};
 
-switch (value)
-{
-    case 0:
-    {
+switch (value) {
+  case 0: {
 
-    } break;
-    case 2: break;
-    default: break;
+  } break;
+  case 2: break;
+  default: break;
 }
 ```
  - All conditions are always between parenthesis, but not boolean values:
 ```c
-if ((value > 1) && (value < 50) && valueActive)
+if ((value > 1) && (value < 50) && value_active)
 {
 
 }
 ```
- - Braces and curly brackets always open-close in aligned mode:
+ - Braces and curly brackets always open-close in align mode with control statement, or function definition:
 ```c
-void SomeFunction()
-{
-   // TODO: Do something here!
+void SomeFunction() {
+  if (condition) {
+    {
+    }
+  }
+  // TODO: Do something here!
 }
 ```
 
