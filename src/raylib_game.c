@@ -1,11 +1,11 @@
 /*******************************************************************************************
 *
-*   raylib gamejam template
+*   Hex a merger
 *
 *   Code licensed under an unmodified zlib/libpng license, which is an OSI-certified,
 *   BSD-like license that allows static linking with closed source software
 *
-*   Copyright (c) 2022-2026 Ramon Santamaria (@raysan5)
+*   Copyright (c) 2026 Vladimir Petrenko (@bobon4uto)
 *
 ********************************************************************************************/
 
