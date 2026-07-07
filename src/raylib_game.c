@@ -74,6 +74,8 @@ static int frame_counter = 0;
 static GameScreen current_screen = SCREEN_TITLE;
 
 static Vector2 mouse_position = { 0 };
+static Vector2 test_touch_points[10] = { 0 };
+static size_t test_touch_points_count = 0;
 
 
 
@@ -177,6 +179,7 @@ void update_and_draw_one_frame(void) {
  
   frame_counter++;
 
+
   // DEBUG
   if (is_key_down(KEY_LEFT_SHIFT)) {
     move_speed_of_controlled_values = 1.0f;
@@ -199,6 +202,13 @@ void update_and_draw_one_frame(void) {
 
 
 
+
+
+  test_touch_points_count = get_touch_point_count();
+
+  for (size_t i = 0; i < test_touch_points_count; ++i) {
+    test_touch_points[i] = get_touch_position(i);
+  }
 
   if (is_cursor_on_screen() && is_mouse_button_down(MOUSE_LEFT_BUTTON)) {
     mouse_position = get_mouse_position();
@@ -306,6 +316,12 @@ static void draw_title_screen() {
   } else {
     draw_text("Press\nhere\nto play", 150, 222, 60, fade(WEAK_BLUE, 0.75f) );
   }
+
+
+  for (size_t i = 0; i < test_touch_points_count; ++i) {
+    draw_hexagon( test_touch_points[i], 100.0f, 10.0f, 0.0f, (Color){10.0f * i, 100.0f, 100.0f}, BLACK);
+  }
+  draw_hexagon( mouse_position, 100.0f, 10.0f, 0.0f, WEAK_BLUE, BLACK);
 
   draw_raylib_logo(70,500);
   draw_text("6.x", 290, 500 - 26, 280, BLACK);
