@@ -5,6 +5,7 @@
 
 typedef struct sMetaMusic {
   float       volume;
+  Music       music;
   const char* filename;
   const char* title;
   const char* author;

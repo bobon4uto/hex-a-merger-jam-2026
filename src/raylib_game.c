@@ -76,14 +76,17 @@ typedef struct sInput{
 typedef struct sHexagonButton {
   GameScreen active_on;
   Vector2 position;
+  Vector2 target_position;
+  Vector2 home_position;
   float radius;
   float thickness;
   float rotation;
   Color color_inside;
   Color color_outside;
-  bool pressed, down, released, other;
+  bool pressed, down, released, not_active, was_in_range, other;
   float rotation_speed;
 } HexagonButton;
+NOU(HexagonButton);
 
 typedef struct sMusicBanner {
   float animation_timer;
@@ -91,13 +94,77 @@ typedef struct sMusicBanner {
 } MusicBanner;
 
 
+#define G_STEP_X_X (-90.0f)
+#define G_STEP_X_Y 52.0f
+#define G_STEP_Y_X 90.0f
+#define G_STEP_Y_Y 52.0f
+// 450 412
+//90 52
+#define G_BASE_X 360.0f
+#define G_BASE_Y 60.0f
+#define G_(X,Y) (Vector2){G_BASE_X + G_STEP_X_X*X + G_STEP_Y_X*Y, G_BASE_Y  + G_STEP_X_Y*X + G_STEP_Y_Y*Y}
 // macro slop
   //                          bool pressed, down, released;
 // :btn
+
+#define PLAYABLE_BTN(T, X,Y) T(gameplay_grid_##X##_##Y, \
+      { return button_init_playable(G_(X,Y)); }, \
+      {},{ button.gameplay_grid_##X##_##Y.color_inside = RED; },{ if (button.gameplay_grid_##X##_##Y.was_in_range) {on_release_playable(X,Y);} \
+      button.gameplay_grid_##X##_##Y.color_inside = WHITE; } \
+    )\
+
+#define GRAB(N) if (grabbed_hex) {reset_grabbed();} grabbed_hex = &button.gameplay_draggable_hex_##N
+
+
 #define HEX_BUTTONS_LIST(T) \
   T(gameplay_back_to_title, \
       { return button_init_default(SCREEN_GAMEPLAY, (Vector2){100.0f,100.0f}, 100.0f); }, \
       { current_screen = SCREEN_TITLE; },{},{} \
+    ) \
+  PLAYABLE_BTN(T,0,0) \
+  PLAYABLE_BTN(T,0,1) \
+  PLAYABLE_BTN(T,0,2) \
+  \
+  \
+  PLAYABLE_BTN(T,1,0) \
+  PLAYABLE_BTN(T,1,1) \
+  PLAYABLE_BTN(T,1,2) \
+  PLAYABLE_BTN(T,1,3) \
+  \
+  PLAYABLE_BTN(T,2,0) \
+  PLAYABLE_BTN(T,2,1) \
+  PLAYABLE_BTN(T,2,2) \
+  PLAYABLE_BTN(T,2,3) \
+  PLAYABLE_BTN(T,2,4) \
+  \
+  PLAYABLE_BTN(T,3,1) \
+  PLAYABLE_BTN(T,3,2) \
+  PLAYABLE_BTN(T,3,3) \
+  PLAYABLE_BTN(T,3,4) \
+  \
+  \
+  PLAYABLE_BTN(T,4,2) \
+  PLAYABLE_BTN(T,4,3) \
+  PLAYABLE_BTN(T,4,4) \
+  T(gameplay_draggable_hex_1, \
+      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){120.0f,600.0f}, 60.0f); }, \
+      { GRAB(1); },{},{ /*release is global*/ } \
+    ) \
+  T(gameplay_draggable_hex_2, \
+      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){240.0f,600.0f}, 60.0f); }, \
+      { GRAB(2); },{},{ } \
+    ) \
+  T(gameplay_draggable_hex_3, \
+      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){360.0f,600.0f}, 60.0f); }, \
+      { GRAB(3); },{},{ } \
+    ) \
+  T(gameplay_draggable_hex_4, \
+      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){480.0f,600.0f}, 60.0f); }, \
+      { GRAB(4); },{},{ } \
+    ) \
+  T(gameplay_draggable_hex_5, \
+      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){600.0f,600.0f}, 60.0f); }, \
+      { GRAB(5); },{},{ } \
     ) \
   T(settings_back_to_title, \
       { return button_init_default(SCREEN_SETTINGS, (Vector2){100.0f,100.0f}, 100.0f); }, \
@@ -105,11 +172,11 @@ typedef struct sMusicBanner {
     ) \
   T(settings_debug_music_start, \
       { return button_init_default(SCREEN_SETTINGS, (Vector2){400.0f,100.0f}, 100.0f); }, \
-      { start_music_and_show_it(music_dark_shrine,music_dark_shrine_loop_meta); },{},{} \
+      { start_music_and_show_it(music_dark_shrine_loop_meta); },{},{} \
     ) \
   T(settings_debug_music_start2, \
       { return button_init_default(SCREEN_SETTINGS, (Vector2){500.0f,100.0f}, 100.0f); }, \
-      { start_music_and_show_it(music_going_deep,music_going_deep_meta); },{},{} \
+      { start_music_and_show_it(music_going_deep_meta); },{},{} \
     ) \
   T(settings_debug_music_stop, \
       { return button_init_default(SCREEN_SETTINGS, (Vector2){400.0f,300.0f}, 100.0f); }, \
@@ -149,6 +216,7 @@ typedef struct sHexagonButtonMap {
   HEX_BUTTONS_LIST(UNROLL_BUTTONS_STRUCT)
 } HexagonButtonMap;
 
+DA_(HexagonButton) draggable_buttons_on_grid = {0};
 // TODO: Define your custom data types here
 
 //----------------------------------------------------------------------------------
@@ -162,11 +230,13 @@ static int frame_counter = 0;
 static GameScreen current_screen = SCREEN_TITLE;
 static Settings settings = {0};
 
+static MusicBanner music_to_show = {0};
 
 
 
 
 static HexagonButtonMap button = {0};
+static HexagonButton* grabbed_hex = NULL;
 
 
 static Input input = {0};
@@ -174,16 +244,13 @@ static Input input = {0};
 // resources
 static Texture title_background_texture = { 0 };
 static Texture settings_music_icon = { 0 };
-static Music music_dark_shrine = { 0 };
-static Music music_going_deep = { 0 };
-static MusicBanner music_to_show = {0};
 
-
-
+#ifdef _DEBUG
 static Vector2 controlled_vector2 = { 0 };
 static float move_speed_of_controlled_values = 0.01f;
 
 static float controlled_float = 0.00f;
+#endif // _DEBUG
 
 // TODO: Define global variables here, recommended to make them static
 
@@ -196,10 +263,14 @@ static void update_and_draw_one_frame(void);      // Update and Draw one frame
 static Texture texture_from_file(const char* filename);
 
 static void update_hexagon_button(HexagonButton* self);
-static void update_music_stream_ex(Music m);
+static void update_music_stream_ex(MetaMusic* mm);
 
-static void start_music_and_show_it(Music m, MetaMusic mm);
+static void start_music_and_show_it(MetaMusic mm);
 
+static void on_release_playable(int x, int y);
+static void reset_grabbed();
+static void init_stage_1();
+static bool ran_out_of_hexes();
 
 static void draw_raylib_logo(int x, int y);
 static void draw_music_banner(int x, int y);
@@ -213,9 +284,12 @@ static void draw_gameplay_screen();
 
 static void draw_all_buttons();
 
+#ifdef _DEBUG
 static void draw_debug_overlay();
+#endif // _DEBUG
 
 static HexagonButton button_init_default(GameScreen active_on, Vector2 position, float radius);
+static HexagonButton button_init_playable(Vector2 position);
 #define UNROLL_BUTTONS_INIT_FUNCS(BUTTON_NAME,_i,_p,_d,_r) \
   static HexagonButton button_init_##BUTTON_NAME(); \
   static void button_##BUTTON_NAME##_on_pressed(); \
@@ -226,7 +300,7 @@ static HexagonButton button_init_default(GameScreen active_on, Vector2 position,
 
 
 static HexagonButton button_init_start_game_();
-static Music load_music_from_meta(MetaMusic mm);
+static void load_music_from_meta(MetaMusic* mm);
 static void pause_all_music();
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -243,8 +317,8 @@ int main(void)
 
 
     init_audio_device();
-    music_dark_shrine = load_music_from_meta(music_dark_shrine_loop_meta);
-    music_going_deep = load_music_from_meta(music_going_deep_meta);
+    load_music_from_meta(&music_dark_shrine_loop_meta);
+    load_music_from_meta(&music_going_deep_meta);
 
     // TODO: Load resources / Initialize variables at this point
 #define UNROLL_BUTTONS_INIT(BUTTON_NAME,_i,_p,_d,_r) button.BUTTON_NAME = button_init_##BUTTON_NAME();
@@ -277,8 +351,8 @@ int main(void)
     unload_texture(title_background_texture);
     unload_texture(settings_music_icon);
     unload_render_texture(target);
-    unload_music_stream(music_dark_shrine);
-    unload_music_stream(music_going_deep);
+    unload_music_stream(music_dark_shrine_loop_meta.music);
+    unload_music_stream(music_going_deep_meta.music);
     
     
     // TODO: Unload all loaded resources at this point
@@ -301,8 +375,8 @@ void update_and_draw_one_frame(void) {
   // TODO: Update variables / Implement example logic at this point
  
   frame_counter++;
-  update_music_stream_ex(music_dark_shrine);
-  update_music_stream_ex(music_going_deep);
+  update_music_stream_ex(&music_dark_shrine_loop_meta);
+  update_music_stream_ex(&music_going_deep_meta);
 
 #ifdef _DEBUG
   if (is_key_down(KEY_LEFT_SHIFT)) {
@@ -343,24 +417,46 @@ void update_and_draw_one_frame(void) {
 
 
 #define UNROLL_BUTTONS_CALLBACK(BUTTON_NAME,_i, _p,_d,_r) update_hexagon_button(&button.BUTTON_NAME); \
-  if (button.BUTTON_NAME.pressed) { button_##BUTTON_NAME##_on_pressed(); button.BUTTON_NAME.pressed=false; } \
-  if (button.BUTTON_NAME.down) { button_##BUTTON_NAME##_on_down(); button.BUTTON_NAME.down=false; } \
+  if (button.BUTTON_NAME.pressed ) { button_##BUTTON_NAME##_on_pressed(); button.BUTTON_NAME.pressed=false; } \
+  if (button.BUTTON_NAME.down    ) { button_##BUTTON_NAME##_on_down(); button.BUTTON_NAME.down=false; } \
   if (button.BUTTON_NAME.released) { button_##BUTTON_NAME##_on_released(); button.BUTTON_NAME.released=false; }
   HEX_BUTTONS_LIST(UNROLL_BUTTONS_CALLBACK)
 
+    foreach (HexagonButton in draggable_buttons_on_grid) {
+      (void)(item);
+      update_hexagon_button(current);
+      if (current->pressed ) {
+        if (grabbed_hex) {
+          reset_grabbed();
+        }
+        grabbed_hex = current;
+        current->pressed=false;
+      }
+      if (current->down    ) { current->down=false; }
+      if (current->released) { current->released=false; }
+    }
+    
 
+    if (input.released && grabbed_hex) {
+      reset_grabbed();
+    }
 
 // :update
     switch (current_screen) {
       case SCREEN_LOGO: {
       } break;
       case SCREEN_TITLE: {
-        if (!is_music_stream_playing(music_dark_shrine)) {
-          controlled_float +=1.0f;
-          resume_music_stream(music_dark_shrine);
+        if (!is_music_stream_playing(music_dark_shrine_loop_meta.music)) {
+          start_music_and_show_it(music_dark_shrine_loop_meta);
         }
       } break;
       case SCREEN_GAMEPLAY: {
+        init_stage_1();
+        if (grabbed_hex) {
+          grabbed_hex->target_position = input.pointer_position;
+          //grabbed_hex->position = input.pointer_position;
+        }
+        //button.gameplay_draggable_hex_1.position = controlled_vector2;
       } break;
       case SCREEN_STORY: {
       } break;
@@ -454,11 +550,17 @@ void update_and_draw_one_frame(void) {
 
 
 static void update_hexagon_button(HexagonButton* self) {
+  self->position = vector2_move_towards(self->position, self->target_position,fmaxf(vector2_distance(self->position, self->target_position)/10.0f,0.1f));
+
   if (self->active_on == current_screen) {
-    bool in_range = check_collision_point_circle(input.pointer_position, self->position, self->radius);
+    bool in_range = check_collision_point_circle(input.pointer_position, self->position, self->radius - self->thickness) && !self->not_active;
     self->pressed  = input.pressed  && in_range;
     self->down     = input.down     && in_range;
     self->released = input.released && in_range;
+    if (self->was_in_range && !in_range) {
+      self->released = true;
+    }
+    self->was_in_range = in_range;
   }
   self->rotation += self->rotation_speed;
 }
@@ -490,6 +592,14 @@ static void draw_hexagon(Vector2 position, float radius, float thickness, float 
 static void draw_all_buttons() {
 #define UNROLL_BUTTONS_DRAW(BUTTON_NAME,_i, _p,_d,_r) draw_hexagon_button(button.BUTTON_NAME);
   HEX_BUTTONS_LIST(UNROLL_BUTTONS_DRAW)
+
+
+  foreach (HexagonButton as btn in draggable_buttons_on_grid) {
+    draw_hexagon_button(btn);
+  }
+  if (grabbed_hex) {
+    draw_hexagon_button(*grabbed_hex);
+  }
 }
 static void draw_gameplay_screen() {
   draw_all_buttons();
@@ -525,6 +635,8 @@ static void draw_title_screen() {
 #ifdef _DEBUG
 static void draw_debug_overlay() {
   draw_hexagon( input.pointer_position, 10.0f, 1.0f, 0.0f, fade( WEAK_BLUE, 0.2f), fade(BLACK, 0.2f));
+  draw_rectangle(controlled_vector2.x, controlled_vector2.y, controlled_float, controlled_float, RED);
+  draw_hexagon( controlled_vector2, controlled_float, 1.0f, 0.0f, fade( WEAK_BLUE, 0.2f), fade(BLACK, 0.2f));
 
   draw_text( text_format("(%f,%f)\n[%f]", controlled_vector2.x, controlled_vector2.y, controlled_float) , 0, 0, 10, BLACK);
 
@@ -553,7 +665,7 @@ static void draw_debug_overlay() {
 #endif
 
 static void draw_hexagon_button(HexagonButton self) {
-  if (self.active_on == current_screen) {
+  if (self.active_on == current_screen && !self.not_active) {
     draw_hexagon(self.position, self.radius, self.thickness, self.rotation, self.color_inside, self.color_outside);
   }
 }
@@ -563,15 +675,22 @@ static void draw_hexagon_button(HexagonButton self) {
 
 
 
-
+static HexagonButton button_init_playable(Vector2 position) {
+  HexagonButton self = button_init_default(SCREEN_GAMEPLAY, position, 60.0f);
+  self.color_inside = fade(WHITE, 0.2f);
+  self.color_outside = fade(BLACK, 0.2f);
+  return self;
+}
 static HexagonButton button_init_default(GameScreen active_on, Vector2 position, float radius) {
     return (HexagonButton){
       .active_on=active_on,
       .position=position,
+      .target_position=position,
+      .home_position=position,
       .radius=radius,
       .thickness=10.0f,
       .rotation=0.0f,
-      .color_inside=WHITE,
+      .color_inside=(Color){get_random_value(0,255),get_random_value(0,255),get_random_value(0,255), 255},
       .color_outside=BLACK,
       .pressed=false,
       .down=false,
@@ -580,44 +699,44 @@ static HexagonButton button_init_default(GameScreen active_on, Vector2 position,
     };
 }
 static HexagonButton button_init_start_game_() {
-    return (HexagonButton){
-      .active_on=SCREEN_TITLE,
-      .position=(Vector2){260.0f, 315.0f},
-      .radius=175.0f,
-      .thickness=10.0f,
-      .rotation=0.0f,
-      .color_inside=WHITE,
-      .color_outside=BLACK,
-      .pressed=false,
-      .down=false,
-      .released=false,
-      .rotation_speed=1.0f,
-    };
+  HexagonButton self = button_init_default(SCREEN_TITLE, (Vector2){260.0f, 315.0f}, 175.0f);
+      self.active_on=SCREEN_TITLE;
+      self.position=(Vector2){260.0f, 315.0f};
+      self.radius=175.0f;
+      self.thickness=10.0f;
+      self.rotation=0.0f;
+      self.color_inside=WHITE;
+      self.color_outside=BLACK;
+      self.pressed=false;
+      self.down=false;
+      self.released=false;
+      self.rotation_speed=1.0f;
+      return self;
 }
 static void pause_all_music() {
-    pause_music_stream(music_dark_shrine);
-    pause_music_stream(music_going_deep);
+    pause_music_stream(music_dark_shrine_loop_meta.music);
+    pause_music_stream(music_going_deep_meta.music);
 }
-static Music load_music_from_meta(MetaMusic mm) {
+static void load_music_from_meta(MetaMusic *mm) {
     Music self = {0};
-    self = load_music_stream(mm.filename);
+    self = load_music_stream(mm->filename);
     play_music_stream(self);
     pause_music_stream(self);
-    set_music_volume(self, mm.volume);
-    return self;
+    set_music_volume(self, mm->volume);
+    mm->music = self;
 }
 static void draw_texture_centered_ex(Texture texture, Vector2 position, float scale, Color tint) {
   Vector2 dimensions = (Vector2){texture.width, texture.height};
   Vector2 offset = vector2_scale( vector2_negate( dimensions ), scale/2);
   draw_texture_ex(texture, vector2_add( position, offset ), 0.0f, scale, tint);
 }
-static void update_music_stream_ex(Music m) {
-  set_music_volume(m, settings.music_volume);
-  update_music_stream(m);
+static void update_music_stream_ex(MetaMusic* mm) {
+  set_music_volume(mm->music, settings.music_volume);
+  update_music_stream(mm->music);
 }
-static void start_music_and_show_it(Music m, MetaMusic mm) {
+static void start_music_and_show_it(MetaMusic mm) {
   pause_all_music();
-  resume_music_stream(m);
+  resume_music_stream(mm.music);
   music_to_show.music=mm;
   music_to_show.animation_timer=30.0f;
 }
@@ -629,8 +748,45 @@ static void draw_music_banner(int x, int y) {
   draw_text(to_write, x+10, y+10, 30, WEAK_BLUE);
 
 }
+static void on_release_playable(int x, int y) {
+  controlled_vector2 = G_(x,y);
+  if (grabbed_hex) {
+    if (grabbed_hex->other) {
+      // this is hex that was already placed
+      HexagonButton* gh = grabbed_hex;
+      reset_grabbed();
+      gh->target_position = G_(x,y);
+      gh->home_position = G_(x,y);
+    } else {
+      // this is base hex
+      HexagonButton to_push = *grabbed_hex;
+      grabbed_hex->position = vector2_add( grabbed_hex->home_position, (Vector2){0.0f,240.0f} );
+      if ( ran_out_of_hexes() ) {
+        grabbed_hex->not_active = true;
+      }
+      reset_grabbed();
+      to_push.other = true;
+      to_push.target_position = G_(x,y);
+      to_push.home_position = G_(x,y);
+      da_push(&draggable_buttons_on_grid, to_push);
+    }
+    // TODO: add hex placement logic
 
+  }
 
+}
+static void init_stage_1() {
+  button.gameplay_grid_0_0.not_active = false;
+  button.gameplay_grid_1_0.not_active = true;
+}
+static bool ran_out_of_hexes() {
+  return false;
+}
+
+static void reset_grabbed() {
+      grabbed_hex->target_position = grabbed_hex->home_position;
+      grabbed_hex = NULL;
+}
 #define UNROLL_BUTTONS_DEFINE_FUNCS(BUTTON_NAME,INIT,PRESSED,DOWN,RELEASED) \
   static HexagonButton button_init_##BUTTON_NAME() INIT \
   static void button_##BUTTON_NAME##_on_pressed() PRESSED \
