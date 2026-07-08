@@ -27,6 +27,8 @@
 // this is basically my utils
 #include "no.util/core.h"
 
+  #define HEX_IMPLEMENTATION
+#include "hex.h"
 
 
 #define RESOURCES_IMPLEMENTATION
@@ -59,6 +61,8 @@ typedef enum {
   SCREEN_TITLE,
   SCREEN_GAMEPLAY,
   SCREEN_STORY,
+  SCREEN_BOOK,
+  SCREEN_BOOK_PAGE2,
   SCREEN_SETTINGS,
   SCREEN_ENDING
 } GameScreen;
@@ -83,8 +87,10 @@ typedef struct sHexagonButton {
   float rotation;
   Color color_inside;
   Color color_outside;
-  bool pressed, down, released, not_active, was_in_range, other;
+  bool pressed, down, released, not_active, was_in_range, fixed, other;
   float rotation_speed;
+  bool has_hex;
+  Hex hex;
 } HexagonButton;
 NOU(HexagonButton);
 
@@ -110,17 +116,82 @@ typedef struct sMusicBanner {
 #define PLAYABLE_BTN(T, X,Y) T(gameplay_grid_##X##_##Y, \
       { return button_init_playable(G_(X,Y)); }, \
       {},{ button.gameplay_grid_##X##_##Y.color_inside = RED; },{ if (button.gameplay_grid_##X##_##Y.was_in_range) {on_release_playable(X,Y);} \
-      button.gameplay_grid_##X##_##Y.color_inside = WHITE; } \
+      button.gameplay_grid_##X##_##Y.color_inside = fade(WHITE, 0.2f); } \
     )\
 
 #define GRAB(N) if (grabbed_hex) {reset_grabbed();} grabbed_hex = &button.gameplay_draggable_hex_##N
 
+#define BOOK_BASE_X 120.0f
+#define BOOK_BASE_Y 180.0f
+#define BOOK_STEP_X 120.0f
+#define BOOK_STEP_Y 120.0f
+#define BOOK_COORDS(X,Y) (Vector2){BOOK_BASE_X+BOOK_STEP_X*X, BOOK_BASE_Y+BOOK_STEP_Y*Y}
+
+#define BOOK_BTN(T,X,Y, NAME) \
+    \
+    T(book_##NAME##_highlight, \
+      { HexagonButton self = button_init_default(SCREEN_BOOK, BOOK_COORDS(X,Y), 70.0f); \
+      self.not_active = true; \
+        self.color_outside = RED; return self; }, \
+      {} ,{},{} \
+    ) \
+    \
+    T(book_##NAME##_description, \
+      { return button_init_book(BOOK_COORDS(X,Y), HEX_##NAME); }, \
+      { if (hex_is_known[HEX_##NAME]) { show_recepie(HEX_##NAME); } } ,{},{} \
+    ) \
 
 #define HEX_BUTTONS_LIST(T) \
   T(gameplay_back_to_title, \
-      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){100.0f,100.0f}, 100.0f); }, \
+      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){660.0f,60.0f}, 60.0f); }, \
       { current_screen = SCREEN_TITLE; },{},{} \
     ) \
+  T(gameplay_to_book, \
+      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){70.0f,480.0f}, 70.0f); }, \
+      { current_screen = SCREEN_BOOK; },{},{ \
+        if (button.gameplay_to_book.was_in_range) { \
+          if(grabbed_hex) { \
+            show_contents(grabbed_hex->hex); current_screen = SCREEN_BOOK; \
+          } \
+        } \
+      } \
+    ) \
+  T(book_to_gameplay, \
+      { return button_init_default(SCREEN_BOOK, (Vector2){660.0f,60.0f}, 60.0f); }, \
+      { current_screen = SCREEN_GAMEPLAY; },{},{} \
+    ) \
+  \
+  BOOK_BTN(T,0,0,AGGRESION) \
+  BOOK_BTN(T,0,1,VIOLENCE) \
+  BOOK_BTN(T,0,2,DISCRIMINATION) \
+  \
+  BOOK_BTN(T,0,3,WAR) \
+  \
+  BOOK_BTN(T,1,0,BLIND) \
+  BOOK_BTN(T,1,1,DEAF) \
+  BOOK_BTN(T,1,2,ANOSMIA) \
+  BOOK_BTN(T,2,0,SOMATOSENSORY_LOSS) \
+  BOOK_BTN(T,2,1,AGEUSIA) \
+  \
+  BOOK_BTN(T,1,3,DEATH) \
+  \
+  BOOK_BTN(T,3,0,FLU) \
+  BOOK_BTN(T,3,1,INSANITY) \
+  BOOK_BTN(T,3,2,AMNESIA) \
+  BOOK_BTN(T,2,2,CANCER) \
+  \
+  BOOK_BTN(T,3,3,PLAGUE) \
+  \
+  BOOK_BTN(T,4,0,WEAK) \
+  BOOK_BTN(T,4,1,SILENCE) \
+  BOOK_BTN(T,4,2,PROCRASTINATION) \
+  \
+  BOOK_BTN(T,4,3,FAMINE) \
+  \
+  BOOK_BTN(T,2,3,REVERSO) \
+  \
+  \
+  \
   PLAYABLE_BTN(T,0,0) \
   PLAYABLE_BTN(T,0,1) \
   PLAYABLE_BTN(T,0,2) \
@@ -147,23 +218,23 @@ typedef struct sMusicBanner {
   PLAYABLE_BTN(T,4,3) \
   PLAYABLE_BTN(T,4,4) \
   T(gameplay_draggable_hex_1, \
-      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){120.0f,600.0f}, 60.0f); }, \
+      { return button_init_hex((Vector2){120.0f,600.0f}, HEX_AGGRESION); }, \
       { GRAB(1); },{},{ /*release is global*/ } \
     ) \
   T(gameplay_draggable_hex_2, \
-      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){240.0f,600.0f}, 60.0f); }, \
+      { return button_init_hex((Vector2){240.0f,600.0f}, HEX_BLIND); }, \
       { GRAB(2); },{},{ } \
     ) \
   T(gameplay_draggable_hex_3, \
-      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){360.0f,600.0f}, 60.0f); }, \
+      { return button_init_hex((Vector2){360.0f,600.0f}, HEX_REVERSO); }, \
       { GRAB(3); },{},{ } \
     ) \
   T(gameplay_draggable_hex_4, \
-      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){480.0f,600.0f}, 60.0f); }, \
+      { return button_init_hex((Vector2){480.0f,600.0f}, HEX_FLU); }, \
       { GRAB(4); },{},{ } \
     ) \
   T(gameplay_draggable_hex_5, \
-      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){600.0f,600.0f}, 60.0f); }, \
+      { return button_init_hex((Vector2){600.0f,600.0f}, HEX_WEAK); }, \
       { GRAB(5); },{},{ } \
     ) \
   T(settings_back_to_title, \
@@ -231,6 +302,8 @@ static GameScreen current_screen = SCREEN_TITLE;
 static Settings settings = {0};
 
 static MusicBanner music_to_show = {0};
+static Texture hex_icons[NUMBER_OF_HEXES] = {0};
+static bool hex_is_known[NUMBER_OF_HEXES] = {0};
 
 
 
@@ -242,7 +315,8 @@ static HexagonButton* grabbed_hex = NULL;
 static Input input = {0};
 
 // resources
-static Texture title_background_texture = { 0 };
+static Texture gameplay_background_texture  = { 0 };
+
 static Texture settings_music_icon = { 0 };
 
 #ifdef _DEBUG
@@ -265,12 +339,20 @@ static Texture texture_from_file(const char* filename);
 static void update_hexagon_button(HexagonButton* self);
 static void update_music_stream_ex(MetaMusic* mm);
 
+
+static void show_contents(Hex hex);
+static void show_recepie(HexTrait hex);
+
 static void start_music_and_show_it(MetaMusic mm);
 
 static void on_release_playable(int x, int y);
 static void reset_grabbed();
 static void init_stage_1();
 static bool ran_out_of_hexes();
+static void new_hex(HexagonButton* button);
+static HexagonButton* get_mergable( Vector2 position );
+static HexTrait random_available_hex();
+static void set_light(HexTrait hex, bool light);
 
 static void draw_raylib_logo(int x, int y);
 static void draw_music_banner(int x, int y);
@@ -279,8 +361,10 @@ static void draw_hexagon_outline(Vector2 position, float radius, float thickness
 static void draw_hexagon_insides(Vector2 position, float radius, float rotation, Color color);
 static void draw_hexagon(Vector2 position, float radius, float thickness, float rotation, Color color_inside, Color color_outside);
 static void draw_hexagon_button(HexagonButton self);
+static void draw_hex_trait(HexTrait hex_trait, Vector2 position,  float scale);
 static void draw_title_screen();
 static void draw_gameplay_screen();
+static void draw_book();
 
 static void draw_all_buttons();
 
@@ -314,7 +398,7 @@ int main(void)
     // Initialization
     //--------------------------------------------------------------------------------------
     init_window(screen_x_, screen_y_, "hex a merger");
-
+// :init
 
     init_audio_device();
     load_music_from_meta(&music_dark_shrine_loop_meta);
@@ -326,8 +410,65 @@ int main(void)
 
     settings.music_volume = 1.0f;
 
-    title_background_texture = texture_from_file("resources/mockup/mockup_title_screen.png");
+    gameplay_background_texture = texture_from_file("resources/sprites/gameplay_background.png");
     settings_music_icon = texture_from_file("resources/sprites/music_icon.png");
+
+
+
+
+    merge_crafts[HEX_NULL ] = null_merge;
+    merge_crafts[HEX_REVERSO ] = reverso_merge;
+    merge_crafts[HEX_BLIND ] = blind_merge;
+    merge_crafts[HEX_DEAF ] = deaf_merge;
+    merge_crafts[HEX_ANOSMIA ] = anosmia_merge;
+    merge_crafts[HEX_SOMATOSENSORY_LOSS ] = somatosensory_loss_merge;
+    merge_crafts[HEX_AGEUSIA ] = ageusia_merge;
+    merge_crafts[HEX_DEATH ] = death_merge;
+    merge_crafts[HEX_WEAK ] = weak_merge;
+    merge_crafts[HEX_SILENCE ] = silence_merge;
+    merge_crafts[HEX_PROCRASTINATION ] = procrastination_merge;
+    merge_crafts[HEX_FAMINE ] = famine_merge;
+    merge_crafts[HEX_FLU ] = flu_merge;
+    merge_crafts[HEX_INSANITY ] = insanity_merge;
+    merge_crafts[HEX_CANCER ] = cancer_merge;
+    merge_crafts[HEX_AMNESIA ] = amnesia_merge;
+    merge_crafts[HEX_PLAGUE ] = plague_merge;
+    merge_crafts[HEX_AGGRESION ] = aggresion_merge;
+    merge_crafts[HEX_VIOLENCE ] = violence_merge;
+    merge_crafts[HEX_DISCRIMINATION ] = discrimination_merge;
+    merge_crafts[HEX_WAR ] = war_merge;
+
+
+
+  hex_icons[HEX_NULL] = texture_from_file("resources/sprites/hexes/null.png");
+  hex_icons[HEX_REVERSO] = texture_from_file("resources/sprites/hexes/reverso.png");
+  hex_icons[HEX_BLIND] = texture_from_file("resources/sprites/hexes/blind.png");
+  hex_icons[HEX_DEAF] = texture_from_file("resources/sprites/hexes/deaf.png");
+  hex_icons[HEX_ANOSMIA] = texture_from_file("resources/sprites/hexes/anosmia.png");
+  hex_icons[HEX_SOMATOSENSORY_LOSS] = texture_from_file("resources/sprites/hexes/sematosensory_loss.png");
+  hex_icons[HEX_AGEUSIA] = texture_from_file("resources/sprites/hexes/ageusia.png");
+  hex_icons[HEX_DEATH] = texture_from_file("resources/sprites/hexes/death.png");
+  hex_icons[HEX_WEAK] = texture_from_file("resources/sprites/hexes/weak.png");
+  hex_icons[HEX_SILENCE] = texture_from_file("resources/sprites/hexes/silence.png");
+  hex_icons[HEX_PROCRASTINATION] = texture_from_file("resources/sprites/hexes/procrastination.png");
+  hex_icons[HEX_FAMINE] = texture_from_file("resources/sprites/hexes/famine.png");
+  hex_icons[HEX_FLU] = texture_from_file("resources/sprites/hexes/flu.png");
+  hex_icons[HEX_INSANITY] = texture_from_file("resources/sprites/hexes/insanity.png");
+  hex_icons[HEX_CANCER] = texture_from_file("resources/sprites/hexes/cancer.png");
+  hex_icons[HEX_AMNESIA] = texture_from_file("resources/sprites/hexes/amnesia.png");
+  hex_icons[HEX_PLAGUE] = texture_from_file("resources/sprites/hexes/plague.png");
+  hex_icons[HEX_AGGRESION] = texture_from_file("resources/sprites/hexes/aggresion.png");
+  hex_icons[HEX_VIOLENCE] = texture_from_file("resources/sprites/hexes/violence.png");
+  hex_icons[HEX_DISCRIMINATION] = texture_from_file("resources/sprites/hexes/discrimination.png");
+  hex_icons[HEX_WAR] = texture_from_file("resources/sprites/hexes/war.png");
+    //hex_is_known[HEX_NULL] = true;
+    //null is the question mark
+    hex_is_known[HEX_REVERSO] = true;
+    hex_is_known[HEX_BLIND] = true;
+    hex_is_known[HEX_WEAK] = true;
+    hex_is_known[HEX_FLU] = true;
+    hex_is_known[HEX_AGGRESION] = true;
+
     // Render texture to draw, enables screen scaling
     // NOTE: If screen is scaled, mouse input should be scaled proportionally
     target = load_render_texture(screen_x_, screen_y_);
@@ -348,11 +489,38 @@ int main(void)
 
     // De-Initialization
     //--------------------------------------------------------------------------------------
-    unload_texture(title_background_texture);
+    unload_texture(gameplay_background_texture);
     unload_texture(settings_music_icon);
+
+  unload_texture(hex_icons[HEX_NULL]);
+  unload_texture(hex_icons[HEX_REVERSO]);
+  unload_texture(hex_icons[HEX_BLIND]);
+  unload_texture(hex_icons[HEX_DEAF]);
+  unload_texture(hex_icons[HEX_ANOSMIA]);
+  unload_texture(hex_icons[HEX_SOMATOSENSORY_LOSS]);
+  unload_texture(hex_icons[HEX_AGEUSIA]);
+  unload_texture(hex_icons[HEX_DEATH]);
+  unload_texture(hex_icons[HEX_WEAK]);
+  unload_texture(hex_icons[HEX_SILENCE]);
+  unload_texture(hex_icons[HEX_PROCRASTINATION]);
+  unload_texture(hex_icons[HEX_FAMINE]);
+  unload_texture(hex_icons[HEX_FLU]);
+  unload_texture(hex_icons[HEX_INSANITY]);
+  unload_texture(hex_icons[HEX_CANCER]);
+  unload_texture(hex_icons[HEX_AMNESIA]);
+  unload_texture(hex_icons[HEX_PLAGUE]);
+  unload_texture(hex_icons[HEX_AGGRESION]);
+  unload_texture(hex_icons[HEX_VIOLENCE]);
+  unload_texture(hex_icons[HEX_DISCRIMINATION]);
+  unload_texture(hex_icons[HEX_WAR]);
+
+
     unload_render_texture(target);
     unload_music_stream(music_dark_shrine_loop_meta.music);
     unload_music_stream(music_going_deep_meta.music);
+
+
+
     
     
     // TODO: Unload all loaded resources at this point
@@ -460,6 +628,10 @@ void update_and_draw_one_frame(void) {
       } break;
       case SCREEN_STORY: {
       } break;
+      case SCREEN_BOOK: {
+      } break;
+      case SCREEN_BOOK_PAGE2: {
+      } break;
       case SCREEN_SETTINGS: {
         //pause_all_music();
       } break;
@@ -503,6 +675,18 @@ void update_and_draw_one_frame(void) {
         draw_gameplay_screen();
       } break;
       case SCREEN_STORY: {
+      } break;
+      case SCREEN_BOOK: {
+        draw_book();
+        current_screen = SCREEN_BOOK;
+        draw_all_buttons();
+        draw_text("description...", 260,260,30, BLACK);
+      } break;
+      case SCREEN_BOOK_PAGE2: {
+        draw_book();
+        current_screen = SCREEN_BOOK_PAGE2;
+        draw_all_buttons();
+        draw_text("description...", 260,260,30, BLACK);
       } break;
       case SCREEN_SETTINGS: {
         draw_all_buttons();
@@ -602,10 +786,10 @@ static void draw_all_buttons() {
   }
 }
 static void draw_gameplay_screen() {
+  draw_texture(gameplay_background_texture, 0, 0, WHITE);
   draw_all_buttons();
 }
 static void draw_title_screen() {
-  draw_texture(title_background_texture, 0, 0, WHITE);
   draw_text("Hex A Merge", 30, 30, 100, WEAK_BLUE);
   //draw_hexagon((Vector2){450.0f, 332.0f}, 175.0f, 10.0f, 0.0f, WHITE,  BLACK);
 
@@ -653,6 +837,12 @@ static void draw_debug_overlay() {
     case SCREEN_STORY: {
       draw_text("SCREEN_STORY", 10,100,20,BLACK);
     } break;
+    case SCREEN_BOOK: {
+      draw_text("SCREEN_BOOK", 10,100,20,BLACK);
+    } break;
+    case SCREEN_BOOK_PAGE2: {
+      draw_text("SCREEN_BOOK_PAGE2", 10,100,20,BLACK);
+    } break;
     case SCREEN_SETTINGS: {
       draw_text("SCREEN_SETTINGS", 10,100,20,BLACK);
     } break;
@@ -667,14 +857,44 @@ static void draw_debug_overlay() {
 static void draw_hexagon_button(HexagonButton self) {
   if (self.active_on == current_screen && !self.not_active) {
     draw_hexagon(self.position, self.radius, self.thickness, self.rotation, self.color_inside, self.color_outside);
+    if (self.has_hex) {
+      if (self.hex.traits.count == 0) {
+        // nothing to draw
+      } else if (self.hex.traits.count == 1) {
+        // known hex
+        HexTrait hex = da_first(&self.hex.traits);
+        if (hex_is_known[hex] ) {
+          draw_hex_trait( da_first(&self.hex.traits), self.position, 1.0f);
+        } else {
+        draw_hex_trait(HEX_NULL, self.position, 1.0f);
+        }
+      } else {
+        // unknown hex
+        draw_hex_trait(HEX_NULL, self.position, 1.0f);
+      }
+    }
   }
 }
 
 
 
+static void draw_hex_trait(HexTrait hex_trait, Vector2 position,  float scale) {
+  draw_texture_centered_ex(hex_icons[hex_trait], position, scale, WHITE);
+}
 
 
 
+static HexagonButton button_init_hex(Vector2 position, HexTrait starting_hex) {
+  HexagonButton self = button_init_default(SCREEN_GAMEPLAY, position, 60.0f);
+  da_push(&self.hex.traits, starting_hex);
+  self.has_hex = true;
+  return self;
+}
+static HexagonButton button_init_book(Vector2 position, HexTrait starting_hex) {
+  HexagonButton self = button_init_hex(position, starting_hex);
+  self.active_on = SCREEN_BOOK;
+  return self;
+}
 static HexagonButton button_init_playable(Vector2 position) {
   HexagonButton self = button_init_default(SCREEN_GAMEPLAY, position, 60.0f);
   self.color_inside = fade(WHITE, 0.2f);
@@ -690,7 +910,7 @@ static HexagonButton button_init_default(GameScreen active_on, Vector2 position,
       .radius=radius,
       .thickness=10.0f,
       .rotation=0.0f,
-      .color_inside=(Color){get_random_value(0,255),get_random_value(0,255),get_random_value(0,255), 255},
+      .color_inside=WHITE,
       .color_outside=BLACK,
       .pressed=false,
       .down=false,
@@ -754,8 +974,28 @@ static void on_release_playable(int x, int y) {
       // this is hex that was already placed
       HexagonButton* gh = grabbed_hex;
       reset_grabbed();
+      HexagonButton* merge_into = get_mergable( G_(x,y) );
       gh->target_position = G_(x,y);
       gh->home_position = G_(x,y);
+      if (merge_into==gh) {
+        // we didnt move
+        merge_into = NULL;
+      }
+      if (merge_into) {
+        // space is taken, so we merge into owner
+        hex_merge(&merge_into->hex, &gh->hex);
+        if (merge_into->hex.traits.count == 1) {
+          hex_is_known[da_first(&merge_into->hex.traits)] = true;
+        }
+        merge_into->position = gh->position;
+        // now scary part, we MUST pop ourselves.
+        u position = (gh - draggable_buttons_on_grid.items);
+        da_remove_at(&draggable_buttons_on_grid, position);
+
+
+      } else {
+        // space is empty, we are already in the array.
+      }
     } else {
       // this is base hex
       HexagonButton to_push = *grabbed_hex;
@@ -763,28 +1003,113 @@ static void on_release_playable(int x, int y) {
       if ( ran_out_of_hexes() ) {
         grabbed_hex->not_active = true;
       }
+      // to_push now owns hex, so base hex needs to be regenerated
+      new_hex(grabbed_hex);
       reset_grabbed();
       to_push.other = true;
       to_push.target_position = G_(x,y);
       to_push.home_position = G_(x,y);
-      da_push(&draggable_buttons_on_grid, to_push);
+      HexagonButton* merge_into = get_mergable( G_(x,y) );
+      if (merge_into) {
+        // space is taken, so we merge into owner
+        hex_merge(&merge_into->hex, &to_push.hex);
+        if (merge_into->hex.traits.count == 1) {
+          hex_is_known[da_first(&merge_into->hex.traits)] = true;
+        }
+        merge_into->position = to_push.position;
+      } else {
+        // space is empty, so we allocate ourselves
+        da_push(&draggable_buttons_on_grid, to_push);
+      }
     }
     // TODO: add hex placement logic
 
   }
 
 }
+static HexagonButton* get_mergable( Vector2 position ) {
+  foreach (HexagonButton in draggable_buttons_on_grid) {
+    (void)(item);
+    if ( Vector2Equals(  current->home_position, position) ) {
+      return current;
+    }
+  }
+  return NULL;
+}
 static void init_stage_1() {
   button.gameplay_grid_0_0.not_active = false;
   button.gameplay_grid_1_0.not_active = true;
 }
+static void new_hex(HexagonButton* button) {
+  button->hex = (Hex){0};
+  da_push(&button->hex.traits, random_available_hex());
+}
+
+static HexTrait random_available_hex() {
+  HexTrait rng = 0;
+  while (!hex_is_known[rng]) {
+    rng = get_random_value(1,21);
+  }
+  return rng;
+}
 static bool ran_out_of_hexes() {
   return false;
+  hex_merge(NULL,NULL);
 }
 
 static void reset_grabbed() {
       grabbed_hex->target_position = grabbed_hex->home_position;
       grabbed_hex = NULL;
+}
+static void draw_book() {
+  current_screen = SCREEN_GAMEPLAY;
+  draw_gameplay_screen();
+  draw_rectangle(0,0,720,720, fade(BLACK,0.5f) );
+  draw_rectangle(60,120,720-60*2,720-120*2, fade(BLACK,0.5f) );
+}
+
+static void show_contents(Hex hex) {
+  for (int i = 0; i < 21; ++i) {
+    set_light(i, false);
+  }
+  foreach(HexTrait as trait in hex.traits) {
+    set_light(trait, true);
+  }
+}
+static void set_light(HexTrait hex, bool light) {
+  switch (hex) {
+    case HEX_REVERSO: button.book_REVERSO_highlight.not_active = !light; break;
+    case HEX_BLIND: button.book_BLIND_highlight.not_active = !light; break;
+    case HEX_DEAF: button.book_DEAF_highlight.not_active = !light; break;
+    case HEX_ANOSMIA: button.book_ANOSMIA_highlight.not_active = !light; break;
+    case HEX_SOMATOSENSORY_LOSS: button.book_SOMATOSENSORY_LOSS_highlight.not_active = !light; break;
+    case HEX_AGEUSIA: button.book_AGEUSIA_highlight.not_active = !light; break;
+    case HEX_DEATH: button.book_DEATH_highlight.not_active = !light; break;
+    case HEX_WEAK: button.book_WEAK_highlight.not_active = !light; break;
+    case HEX_SILENCE: button.book_SILENCE_highlight.not_active = !light; break;
+    case HEX_PROCRASTINATION: button.book_PROCRASTINATION_highlight.not_active = !light; break;
+    case HEX_FAMINE: button.book_FAMINE_highlight.not_active = !light; break;
+    case HEX_FLU: button.book_FLU_highlight.not_active = !light; break;
+    case HEX_INSANITY: button.book_INSANITY_highlight.not_active = !light; break;
+    case HEX_CANCER: button.book_CANCER_highlight.not_active = !light; break;
+    case HEX_AMNESIA: button.book_AMNESIA_highlight.not_active = !light; break;
+    case HEX_PLAGUE: button.book_PLAGUE_highlight.not_active = !light; break;
+    case HEX_AGGRESION: button.book_AGGRESION_highlight.not_active = !light; break;
+    case HEX_VIOLENCE: button.book_VIOLENCE_highlight.not_active = !light; break;
+    case HEX_DISCRIMINATION: button.book_DISCRIMINATION_highlight.not_active = !light; break;
+    case HEX_WAR: button.book_WAR_highlight.not_active = !light; break;
+    default: break;
+  }
+}
+static void show_recepie(HexTrait hex) {
+  for (int i = 0; i < 21; ++i) {
+    set_light(i, false);
+  }
+
+  HexTrait* ingridients = merge_crafts[hex];
+  for (;*ingridients!=HEX_NULL;++ingridients) {
+    set_light(*ingridients, true);
+  }
 }
 
 #define UNROLL_BUTTONS_DEFINE_FUNCS(BUTTON_NAME,INIT,PRESSED,DOWN,RELEASED) \

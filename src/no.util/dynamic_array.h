@@ -34,7 +34,10 @@
   (da)->count -= bump; \
 } while (0)
 
-
+#define da_remove_at(da,i) do { memcpy( (da)->items + i, \
+            (da)->items + i + 1, \
+            ((da)->count - i - 1) * sizeof( *(da)->items ) ); \
+        (da)->count--; } while (0)
 #define da_pop(da) (da)->items[--(da)->count]
 #define da_peek(da) (da)->items[(da)->count-1]
 #define da_last(da) da_peek(da)
