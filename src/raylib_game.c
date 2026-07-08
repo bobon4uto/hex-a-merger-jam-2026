@@ -749,7 +749,6 @@ static void draw_music_banner(int x, int y) {
 
 }
 static void on_release_playable(int x, int y) {
-  controlled_vector2 = G_(x,y);
   if (grabbed_hex) {
     if (grabbed_hex->other) {
       // this is hex that was already placed
@@ -787,6 +786,7 @@ static void reset_grabbed() {
       grabbed_hex->target_position = grabbed_hex->home_position;
       grabbed_hex = NULL;
 }
+
 #define UNROLL_BUTTONS_DEFINE_FUNCS(BUTTON_NAME,INIT,PRESSED,DOWN,RELEASED) \
   static HexagonButton button_init_##BUTTON_NAME() INIT \
   static void button_##BUTTON_NAME##_on_pressed() PRESSED \
