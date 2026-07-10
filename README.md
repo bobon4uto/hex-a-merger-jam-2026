@@ -4,16 +4,19 @@
 
 ### Description
 
-TBD
+In this game you play as a hex seller in hell. You have to merge Hexes (kinds of curses) to sell them to your customers!
 
 ### Features
 
- - TBD
+ - Settings (mainly music volume control)
+ - Story
+ - Gameplay
 
 ### Controls
 
-Keyboard:
- - TBD
+Mouse and touch:
+ - Tap on buttons.
+ - During gameplay drag and drop hexagons in their places. You can also drag and drop them to inspection menu that will show what that hexagon is made of.
 
 ### Screenshots
 

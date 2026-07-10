@@ -201,7 +201,7 @@ static void try_merge(Hex* self, HexTrait into) {
       return;
     }
   }
-  // found all ingridiens, lets craft.
+  // found all ingridiens, lets merge.
 
   self->traits.count = 0;
   da_push(&self->traits, into);

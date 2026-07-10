@@ -35,6 +35,8 @@
 #include "resources.h"
 
 
+#define DIALOGUES_IMPLEMENTATION
+#include "dialogues.h"
 //----------------------------------------------------------------------------------
 // Defines and Macros
 //----------------------------------------------------------------------------------
@@ -145,6 +147,17 @@ typedef struct sMusicBanner {
   T(gameplay_back_to_title, \
       { return button_init_default(SCREEN_GAMEPLAY, (Vector2){660.0f,60.0f}, 60.0f); }, \
       { current_screen = SCREEN_TITLE; },{},{} \
+    ) \
+  T(gameplay_to_story, \
+      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){60.0f,60.0f}, 60.0f); }, \
+      { current_screen = SCREEN_STORY; next_line(); },{},{/*also should do quest drop*/} \
+    ) \
+  \
+  T(story_next, \
+      { HexagonButton self = button_init_default(SCREEN_STORY, (Vector2){640.0f,640.0f}, 80.0f); \
+      self.rotation_speed = 0.5f; \
+      return self; }, \
+      { next_line(); },{},{} \
     ) \
   T(gameplay_to_book, \
       { return button_init_default(SCREEN_GAMEPLAY, (Vector2){70.0f,480.0f}, 70.0f); }, \
@@ -318,6 +331,9 @@ static Input input = {0};
 static Texture gameplay_background_texture  = { 0 };
 
 static Texture settings_music_icon = { 0 };
+static u current_dialogue_line = 0;
+//static const char* dialogue_text = "TEXT";
+static DialogueBase dialogue_frame = {0};
 
 #ifdef _DEBUG
 static Vector2 controlled_vector2 = { 0 };
@@ -334,6 +350,7 @@ static float controlled_float = 0.00f;
 // :funcs
 static void update_and_draw_one_frame(void);      // Update and Draw one frame
 
+
 static Texture texture_from_file(const char* filename);
 
 static void update_hexagon_button(HexagonButton* self);
@@ -344,6 +361,7 @@ static void show_contents(Hex hex);
 static void show_recepie(HexTrait hex);
 
 static void start_music_and_show_it(MetaMusic mm);
+static void next_line();
 
 static void on_release_playable(int x, int y);
 static void reset_grabbed();
@@ -359,11 +377,17 @@ static void draw_music_banner(int x, int y);
 static void draw_texture_centered_ex(Texture texture, Vector2 position, float scale, Color tint);
 static void draw_hexagon_outline(Vector2 position, float radius, float thickness, float rotation, Color color);
 static void draw_hexagon_insides(Vector2 position, float radius, float rotation, Color color);
+
+static void draw_left_character(Character c, bool is_speaking);
+static void draw_right_character(Character c, bool is_speaking);
+
 static void draw_hexagon(Vector2 position, float radius, float thickness, float rotation, Color color_inside, Color color_outside);
 static void draw_hexagon_button(HexagonButton self);
 static void draw_hex_trait(HexTrait hex_trait, Vector2 position,  float scale);
 static void draw_title_screen();
 static void draw_gameplay_screen();
+
+
 static void draw_book();
 
 static void draw_all_buttons();
@@ -414,6 +438,8 @@ int main(void)
     settings_music_icon = texture_from_file("resources/sprites/music_icon.png");
 
 
+
+    dia_init();
 
 
     merge_crafts[HEX_NULL ] = null_merge;
@@ -675,18 +701,42 @@ void update_and_draw_one_frame(void) {
         draw_gameplay_screen();
       } break;
       case SCREEN_STORY: {
+        current_screen = SCREEN_GAMEPLAY;
+        draw_gameplay_screen();
+        draw_rectangle(0,0,720,720, fade(BLACK,0.5f) );
+        current_screen = SCREEN_STORY;
+        draw_rectangle(0,720 - 260, 720, 260, BLACK );
+//        draw_text(""
+//"bla bla bla bla bla bla bla bla bla bla\n"
+//"bla bla bla bla bla bla bla bla bla bla\n"
+//"bla bla bla bla bla bla bla bla bla bla\n"
+//"bla bla bla bla bla bla bla bla bla bla\n"
+//"bla bla bla bla bla bla bla bla bla bla\n"
+//"bla bla bla bla bla bla bla bla bla bla\n"
+//"bla bla bla bla bla bla bla bla bla bla.\n"
+//
+//, 0, 720 - 240, 30, WHITE);
+
+        if (dialogue_frame.line) {
+          draw_text(dialogue_frame.line, 0, 720 - 240, 30, WHITE);
+        } else {
+          draw_text("Nothing to say, sorry.", 0, 720 - 240, 30, WHITE);
+        }
+
+        draw_left_character(dialogue_frame.character_left, dialogue_frame.character_speaking == C_LEFT);
+        draw_right_character(dialogue_frame.character_right,  dialogue_frame.character_speaking == C_RIGHT);
+        draw_all_buttons();
+
+
+
+
       } break;
       case SCREEN_BOOK: {
         draw_book();
         current_screen = SCREEN_BOOK;
         draw_all_buttons();
-        draw_text("description...", 260,260,30, BLACK);
       } break;
       case SCREEN_BOOK_PAGE2: {
-        draw_book();
-        current_screen = SCREEN_BOOK_PAGE2;
-        draw_all_buttons();
-        draw_text("description...", 260,260,30, BLACK);
       } break;
       case SCREEN_SETTINGS: {
         draw_all_buttons();
@@ -732,6 +782,14 @@ void update_and_draw_one_frame(void) {
   //----------------------------------------------------------------------------------  
 }
 
+static void next_line() {
+  u play_line = current_dialogue_line;
+  dialogue_frame = dia_main[play_line];
+  current_dialogue_line = dialogue_frame.next_line;
+  if (!dialogue_frame.line) {
+    current_screen = SCREEN_GAMEPLAY;
+  }
+}
 
 static void update_hexagon_button(HexagonButton* self) {
   self->position = vector2_move_towards(self->position, self->target_position,fmaxf(vector2_distance(self->position, self->target_position)/10.0f,0.1f));
@@ -910,7 +968,7 @@ static HexagonButton button_init_default(GameScreen active_on, Vector2 position,
       .radius=radius,
       .thickness=10.0f,
       .rotation=0.0f,
-      .color_inside=WHITE,
+      .color_inside=(Color){ 0xDF, 0xAF, 0x5F, 0xFF },
       .color_outside=BLACK,
       .pressed=false,
       .down=false,
@@ -1110,6 +1168,53 @@ static void show_recepie(HexTrait hex) {
   for (;*ingridients!=HEX_NULL;++ingridients) {
     set_light(*ingridients, true);
   }
+}
+static void draw_character(Character c, bool is_left, bool is_speaking) {
+  Texture to_draw = char_app[c];
+  int offset_x = 0;
+  Color tint = WHITE;
+  if (is_speaking) {
+    offset_x = 0;
+    tint = WHITE;
+  } else {
+    offset_x = 100;
+    tint = GRAY;
+  }
+
+  int speaker_x = 0;
+  int speaker_y = 720 - 260 - 468;
+  if (is_left) {
+    speaker_x = 0;
+    offset_x = -offset_x;
+  } else {
+    speaker_x = 720 - 348;
+  }
+  draw_texture(to_draw, speaker_x + offset_x, speaker_y, tint);
+
+
+  const char* name = get_char_name(c);
+  Vector2 name_banner_dim = measure_text_ex(get_font_default(), name, 30, 3);
+  int x_ = name_banner_dim.x + 10;
+  int y_ = name_banner_dim.y + 10;
+  int x = 0;
+  int y = 720 - 260 - y_;
+  if (is_left) {
+    draw_rectangle(x, y, x_, y_, BLACK );
+    draw_text(name, x+5,y+10,30, WHITE);
+  } else {
+    x=720 - x_;
+    draw_rectangle(x, y, x_, y_, BLACK );
+    draw_text(name, x+5, y+10,30, WHITE);
+  }
+
+
+
+}
+static void draw_left_character(Character c, bool is_speaking) {
+  draw_character(c, true, is_speaking);
+}
+static void draw_right_character(Character c, bool is_speaking) {
+  draw_character(c, false, is_speaking);
 }
 
 #define UNROLL_BUTTONS_DEFINE_FUNCS(BUTTON_NAME,INIT,PRESSED,DOWN,RELEASED) \
