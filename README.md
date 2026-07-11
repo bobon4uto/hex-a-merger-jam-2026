@@ -1,6 +1,6 @@
 ## Hex a merger
 
-![Hex a merger](screenshots/screenshot000.png "Hex a merger")
+![Hex a merger](screenshots/title.png "Hex a merger")
 
 ### Description
 
@@ -8,7 +8,7 @@ In this game you play as a hex seller in hell. You have to merge Hexes (kinds of
 
 ### Features
 
- - Settings (mainly music volume control)
+ - Settings (music volume control)
  - Story
  - Gameplay
 
@@ -17,14 +17,19 @@ In this game you play as a hex seller in hell. You have to merge Hexes (kinds of
 Mouse and touch:
  - Tap on buttons.
  - During gameplay drag and drop hexagons in their places. You can also drag and drop them to inspection menu that will show what that hexagon is made of.
+![Drop to lens](screenshots/put_on_lens.png "put on lens")
+![In lens](screenshots/lens.png "in lens")
 
 ### Screenshots
 
-TBD
+![Dialogue](screenshots/merseus_talk.png "dialogue")
+![Gameplay](screenshots/messy.png "gameplay")
+![Uninvited guests](screenshots/shadows.png "uninvited guests")
+![Unexpected guests](screenshots/unexpected.png "unexpected guests")
 
 ### Developers
 
- - Bobon4uto - coding
+ - Bobon4uto - coding and drawing
 
 ### Links
 
