@@ -131,13 +131,23 @@ static HexTrait hex_reverso(HexTrait t) {
 REVERSO(HEX_WEAK,HEX_AGGRESION);
 REVERSO(HEX_DISCRIMINATION,HEX_SILENCE);
 REVERSO(HEX_BLIND,HEX_SOMATOSENSORY_LOSS);
+REVERSO(HEX_DEAF,HEX_ANOSMIA);
+REVERSO(HEX_VIOLENCE,HEX_INSANITY);
 
+  case HEX_AMNESIA: return HEX_DISCRIMINATION;
+  case HEX_FLU: return HEX_WEAK;
+  case HEX_PROCRASTINATION: return HEX_INSANITY;
+  case HEX_AGEUSIA: return HEX_BLIND;
+  case HEX_NULL: return HEX_BLIND;
+  case HEX_CANCER: return HEX_CANCER;
+  case HEX_REVERSO: return HEX_BLIND;
 
   case HEX_WAR: return HEX_AGGRESION;
   case HEX_FAMINE: return HEX_WEAK;
   case HEX_PLAGUE: return HEX_FLU;
   case HEX_DEATH: return HEX_DEATH; // maybe put some sound effect in that exact moment?
     default: return t;
+
   }
 }
 

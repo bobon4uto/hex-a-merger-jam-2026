@@ -50,7 +50,10 @@
     #define LOG(...)
     #define LOG_ERR(...)
 #endif
-#define WEAK_BLUE       CLITERAL(Color){0x55, 0x55,0xaa,0xff}     // Weak Blue
+#define WEAK_BLUE       CLITERAL(Color){0x55,0x55,0xaa,0xff}     // Weak Blue
+#define PAPER_WHITE     CLITERAL(Color){0xDF,0xAF,0x5F,0xFF}     // Weak Blue
+
+
 
 #define GENERAL_PANIC(PANIC_REASON, ...) do {LOG_ERR(PANIC_REASON": "); LOG_ERR(__VA_ARGS__); exit(0); } while (0)
 #define UNREACHABLE(...) GENERAL_PANIC("UNREACHABLE", __VA_ARGS__)
@@ -102,6 +105,14 @@ typedef struct sMusicBanner {
 } MusicBanner;
 
 
+typedef struct sStringBuilderWrapper {
+  StringBuilder sb;
+  Rectangle screen_dim;
+  const char* link;
+  bool is_focused, is_down;
+} StringBuilderWrapper ;
+
+
 #define G_STEP_X_X (-90.0f)
 #define G_STEP_X_Y 52.0f
 #define G_STEP_Y_X 90.0f
@@ -117,8 +128,8 @@ typedef struct sMusicBanner {
 
 #define PLAYABLE_BTN(T, X,Y) T(gameplay_grid_##X##_##Y, \
       { return button_init_playable(G_(X,Y)); }, \
-      {},{ button.gameplay_grid_##X##_##Y.color_inside = RED; },{ if (button.gameplay_grid_##X##_##Y.was_in_range) {on_release_playable(X,Y);} \
-      button.gameplay_grid_##X##_##Y.color_inside = fade(WHITE, 0.2f); } \
+      {},{ button.gameplay_grid_##X##_##Y.color_inside = fade(RED, 0.05); },{ if (button.gameplay_grid_##X##_##Y.was_in_range) {on_release_playable(X,Y);} \
+      button.gameplay_grid_##X##_##Y.color_inside = fade(WHITE, 0.05f); } \
     )\
 
 #define GRAB(N) if (grabbed_hex) {reset_grabbed();} grabbed_hex = &button.gameplay_draggable_hex_##N
@@ -140,17 +151,45 @@ typedef struct sMusicBanner {
     \
     T(book_##NAME##_description, \
       { return button_init_book(BOOK_COORDS(X,Y), HEX_##NAME); }, \
-      { if (hex_is_known[HEX_##NAME]) { show_recepie(HEX_##NAME); } } ,{},{} \
+      { if (hex_is_shown[HEX_##NAME]) { show_recepie(HEX_##NAME); } } ,{},{} \
     ) \
 
 #define HEX_BUTTONS_LIST(T) \
-  T(gameplay_back_to_title, \
-      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){660.0f,60.0f}, 60.0f); }, \
-      { current_screen = SCREEN_TITLE; },{},{} \
+  T(gameplay_to_settings, \
+      { return button_init_color(SCREEN_GAMEPLAY, (Vector2){660.0f,60.0f}, 60.0f, fade(PAPER_WHITE, 0.2),BLACK); }, \
+      { previous_screen = current_screen; current_screen = SCREEN_SETTINGS; },{},{} \
     ) \
   T(gameplay_to_story, \
-      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){60.0f,60.0f}, 60.0f); }, \
-      { current_screen = SCREEN_STORY; next_line(); },{},{/*also should do quest drop*/} \
+      { return button_init_color(SCREEN_GAMEPLAY, (Vector2){60.0f,60.0f}, 60.0f, fade(PAPER_WHITE, 0.1),fade(PAPER_WHITE, 0.2) ); }, \
+      { current_screen = SCREEN_STORY; next_line(); },{},{\
+      if (button.gameplay_to_story.was_in_range) { \
+          if (grabbed_hex) { \
+            if (grabbed_hex->hex.traits.count == 1) { \
+              if (da_first(&grabbed_hex->hex.traits) == waiting_for) { \
+                waiting_for = HEX_NULL; \
+                if (grabbed_hex->other) { \
+                          u position = (grabbed_hex - draggable_buttons_on_grid.items); \
+                          da_remove_at(&draggable_buttons_on_grid, position); \
+                          grabbed_hex = NULL; \
+                } else { \
+                  grabbed_hex->position = vector2_add( grabbed_hex->home_position, (Vector2){0.0f,240.0f} ); \
+                  da_free(&grabbed_hex->hex.traits); \
+                  new_hex(grabbed_hex); \
+                } \
+                current_dialogue_line = after_wait_line; \
+                current_screen = SCREEN_STORY; \
+                next_line(); \
+              } else { \
+                current_screen = SCREEN_STORY; \
+                next_line(); \
+              } \
+            } else { \
+              current_screen = SCREEN_STORY; \
+              next_line(); \
+            } \
+          } \
+        } \
+      }\
     ) \
   \
   T(story_next, \
@@ -160,7 +199,7 @@ typedef struct sMusicBanner {
       { next_line(); },{},{} \
     ) \
   T(gameplay_to_book, \
-      { return button_init_default(SCREEN_GAMEPLAY, (Vector2){70.0f,480.0f}, 70.0f); }, \
+      { return button_init_color(SCREEN_GAMEPLAY, (Vector2){70.0f,480.0f}, 70.0f, fade(PAPER_WHITE, 0.1),fade(PAPER_WHITE, 0.2)); }, \
       { current_screen = SCREEN_BOOK; },{},{ \
         if (button.gameplay_to_book.was_in_range) { \
           if(grabbed_hex) { \
@@ -170,7 +209,7 @@ typedef struct sMusicBanner {
       } \
     ) \
   T(book_to_gameplay, \
-      { return button_init_default(SCREEN_BOOK, (Vector2){660.0f,60.0f}, 60.0f); }, \
+      { return button_init_color(SCREEN_BOOK, (Vector2){660.0f,60.0f}, 60.0f, RED, BLACK); }, \
       { current_screen = SCREEN_GAMEPLAY; },{},{} \
     ) \
   \
@@ -250,24 +289,12 @@ typedef struct sMusicBanner {
       { return button_init_hex((Vector2){600.0f,600.0f}, HEX_WEAK); }, \
       { GRAB(5); },{},{ } \
     ) \
-  T(settings_back_to_title, \
-      { return button_init_default(SCREEN_SETTINGS, (Vector2){100.0f,100.0f}, 100.0f); }, \
-      { current_screen = SCREEN_TITLE; },{},{} \
-    ) \
-  T(settings_debug_music_start, \
-      { return button_init_default(SCREEN_SETTINGS, (Vector2){400.0f,100.0f}, 100.0f); }, \
-      { start_music_and_show_it(music_dark_shrine_loop_meta); },{},{} \
-    ) \
-  T(settings_debug_music_start2, \
-      { return button_init_default(SCREEN_SETTINGS, (Vector2){500.0f,100.0f}, 100.0f); }, \
-      { start_music_and_show_it(music_going_deep_meta); },{},{} \
-    ) \
-  T(settings_debug_music_stop, \
-      { return button_init_default(SCREEN_SETTINGS, (Vector2){400.0f,300.0f}, 100.0f); }, \
-      {pause_all_music(); },{},{} \
+  T(settings_back_to_previous, \
+      { return button_init_color(SCREEN_SETTINGS, (Vector2){660.0f,60.0f}, 60.0f, RED, BLACK); }, \
+      { current_screen = previous_screen; },{},{} \
     ) \
   T(settings_music_volume, \
-      { return button_init_default(SCREEN_SETTINGS, (Vector2){500.0f,500.0f}, 150.0f); }, \
+      { return button_init_color(SCREEN_SETTINGS, (Vector2){500.0f,500.0f}, 150.0f, fade(WHITE,0.0f), BLACK); }, \
       { button.settings_music_volume.other = true; },{  \
       if (!button.settings_music_volume.other) {return;}\
       settings.music_volume = \
@@ -287,12 +314,12 @@ typedef struct sMusicBanner {
       { },{ },{} \
     ) \
   T(options, \
-      { return button_init_default(SCREEN_TITLE, (Vector2){450.0f,332.0f}, 175.0f); }, \
-      { current_screen = SCREEN_SETTINGS; },{},{} \
+      { return button_init_color(SCREEN_TITLE, (Vector2){450.0f,332.0f}, 175.0f, fade(PAPER_WHITE, 0.5f), fade(BLACK, 1.0f)); }, \
+      { previous_screen = current_screen; current_screen = SCREEN_SETTINGS; },{},{} \
     ) \
   T(start_game, \
       { return button_init_start_game_(); }, \
-      { current_screen = SCREEN_GAMEPLAY; },{},{}\
+      { current_screen = SCREEN_STORY; next_line(); },{},{}\
     )
 
 typedef struct sHexagonButtonMap {
@@ -311,12 +338,14 @@ static const int screen_y_ = 720;
 
 static RenderTexture2D target = { 0 };  // Render texture to render our game
 static int frame_counter = 0;
-static GameScreen current_screen = SCREEN_TITLE;
+static GameScreen current_screen  = SCREEN_TITLE;
+static GameScreen previous_screen = SCREEN_TITLE;
 static Settings settings = {0};
 
 static MusicBanner music_to_show = {0};
 static Texture hex_icons[NUMBER_OF_HEXES] = {0};
 static bool hex_is_known[NUMBER_OF_HEXES] = {0};
+static bool hex_is_shown[NUMBER_OF_HEXES] = {0};
 
 
 
@@ -329,11 +358,29 @@ static Input input = {0};
 
 // resources
 static Texture gameplay_background_texture  = { 0 };
+static Texture title_background_texture     = { 0 };
+static Texture settings_background_texture  = { 0 };
+static Texture settings_texture             = { 0 };
+static Texture lens_texture                 = { 0 };
+static Texture exit_texture                 = { 0 };
+static Texture ending                       = { 0 };
+
 
 static Texture settings_music_icon = { 0 };
 static u current_dialogue_line = 0;
 //static const char* dialogue_text = "TEXT";
 static DialogueBase dialogue_frame = {0};
+
+static HexTrait waiting_for = HEX_NULL;
+static u after_wait_line = 0;
+static float black_amnesia_anim = -20.0f;
+static StringBuilder ending_sb = {0};
+
+static StringBuilderWrapper music_dark_shrine_loop_meta_sb = {0};
+static StringBuilderWrapper music_going_deep_meta_sb = {0};
+static StringBuilderWrapper music_forest_meta_sb = {0};
+static StringBuilderWrapper music_unforgiving_himalayas_meta_sb = {0};
+static bool cinema = false;
 
 #ifdef _DEBUG
 static Vector2 controlled_vector2 = { 0 };
@@ -353,7 +400,9 @@ static void update_and_draw_one_frame(void);      // Update and Draw one frame
 
 static Texture texture_from_file(const char* filename);
 
-static void update_hexagon_button(HexagonButton* self);
+static void update_hexagon_button(GameScreen screen, HexagonButton* self);
+
+
 static void update_music_stream_ex(MetaMusic* mm);
 
 
@@ -372,6 +421,11 @@ static HexagonButton* get_mergable( Vector2 position );
 static HexTrait random_available_hex();
 static void set_light(HexTrait hex, bool light);
 
+static void hex_reveal_rec(HexTrait hex);
+static void play_song(Song song);
+static void update_ending();
+
+static void draw_ending();
 static void draw_raylib_logo(int x, int y);
 static void draw_music_banner(int x, int y);
 static void draw_texture_centered_ex(Texture texture, Vector2 position, float scale, Color tint);
@@ -397,6 +451,7 @@ static void draw_debug_overlay();
 #endif // _DEBUG
 
 static HexagonButton button_init_default(GameScreen active_on, Vector2 position, float radius);
+static HexagonButton button_init_color(GameScreen active_on, Vector2 position, float radius, Color color_inside, Color color_outside);
 static HexagonButton button_init_playable(Vector2 position);
 #define UNROLL_BUTTONS_INIT_FUNCS(BUTTON_NAME,_i,_p,_d,_r) \
   static HexagonButton button_init_##BUTTON_NAME(); \
@@ -427,6 +482,8 @@ int main(void)
     init_audio_device();
     load_music_from_meta(&music_dark_shrine_loop_meta);
     load_music_from_meta(&music_going_deep_meta);
+    load_music_from_meta(&music_unforgiving_himalayas_meta);
+    load_music_from_meta(&music_forest_meta);
 
     // TODO: Load resources / Initialize variables at this point
 #define UNROLL_BUTTONS_INIT(BUTTON_NAME,_i,_p,_d,_r) button.BUTTON_NAME = button_init_##BUTTON_NAME();
@@ -435,8 +492,15 @@ int main(void)
     settings.music_volume = 1.0f;
 
     gameplay_background_texture = texture_from_file("resources/sprites/gameplay_background.png");
+    title_background_texture =    texture_from_file("resources/sprites/title_back.png");
+    settings_background_texture = texture_from_file("resources/sprites/settings_back.png");
+
+    settings_texture             = texture_from_file("resources/sprites/settings.png");
+    lens_texture                 = texture_from_file("resources/sprites/lens.png");
+    exit_texture                 = texture_from_file("resources/sprites/exit.png");
     settings_music_icon = texture_from_file("resources/sprites/music_icon.png");
 
+    ending = texture_from_file("resources/sprites/ending.png");
 
 
     dia_init();
@@ -495,6 +559,12 @@ int main(void)
     hex_is_known[HEX_FLU] = true;
     hex_is_known[HEX_AGGRESION] = true;
 
+    hex_is_shown[HEX_REVERSO] = true;
+    hex_is_shown[HEX_BLIND] = true;
+    hex_is_shown[HEX_WEAK] = true;
+    hex_is_shown[HEX_FLU] = true;
+    hex_is_shown[HEX_AGGRESION] = true;
+
     // Render texture to draw, enables screen scaling
     // NOTE: If screen is scaled, mouse input should be scaled proportionally
     target = load_render_texture(screen_x_, screen_y_);
@@ -518,6 +588,7 @@ int main(void)
     unload_texture(gameplay_background_texture);
     unload_texture(settings_music_icon);
 
+  dia_deinit();
   unload_texture(hex_icons[HEX_NULL]);
   unload_texture(hex_icons[HEX_REVERSO]);
   unload_texture(hex_icons[HEX_BLIND]);
@@ -544,9 +615,14 @@ int main(void)
     unload_render_texture(target);
     unload_music_stream(music_dark_shrine_loop_meta.music);
     unload_music_stream(music_going_deep_meta.music);
+    unload_music_stream(music_unforgiving_himalayas_meta.music);
+    unload_music_stream(music_forest_meta.music);
 
 
 
+
+
+    sb_free(&ending_sb);
     
     
     // TODO: Unload all loaded resources at this point
@@ -571,6 +647,8 @@ void update_and_draw_one_frame(void) {
   frame_counter++;
   update_music_stream_ex(&music_dark_shrine_loop_meta);
   update_music_stream_ex(&music_going_deep_meta);
+  update_music_stream_ex(&music_unforgiving_himalayas_meta);
+  update_music_stream_ex(&music_forest_meta);
 
 #ifdef _DEBUG
   if (is_key_down(KEY_LEFT_SHIFT)) {
@@ -603,22 +681,29 @@ void update_and_draw_one_frame(void) {
   //  test_touch_points[i] = get_touch_position(i);
   //}
 
+  GameScreen screen = current_screen;
+
   input.pointer_position = get_mouse_position();
   input.pressed  = is_mouse_button_pressed (MOUSE_LEFT_BUTTON);
   input.down     = is_mouse_button_down    (MOUSE_LEFT_BUTTON);
   input.released = is_mouse_button_released(MOUSE_LEFT_BUTTON);
-  update_hexagon_button(&button.start_game);
+  update_hexagon_button(screen, &button.start_game);
 
 
-#define UNROLL_BUTTONS_CALLBACK(BUTTON_NAME,_i, _p,_d,_r) update_hexagon_button(&button.BUTTON_NAME); \
+#define UNROLL_BUTTONS_CALLBACK(BUTTON_NAME,_i, _p,_d,_r) update_hexagon_button(screen, &button.BUTTON_NAME); \
   if (button.BUTTON_NAME.pressed ) { button_##BUTTON_NAME##_on_pressed(); button.BUTTON_NAME.pressed=false; } \
   if (button.BUTTON_NAME.down    ) { button_##BUTTON_NAME##_on_down(); button.BUTTON_NAME.down=false; } \
   if (button.BUTTON_NAME.released) { button_##BUTTON_NAME##_on_released(); button.BUTTON_NAME.released=false; }
   HEX_BUTTONS_LIST(UNROLL_BUTTONS_CALLBACK)
 
+    if ( black_amnesia_anim > -10.0f) {
+      button.story_next.not_active = true;
+    } else {
+      button.story_next.not_active = false;
+    }
     foreach (HexagonButton in draggable_buttons_on_grid) {
       (void)(item);
-      update_hexagon_button(current);
+      update_hexagon_button(screen,current);
       if (current->pressed ) {
         if (grabbed_hex) {
           reset_grabbed();
@@ -662,6 +747,7 @@ void update_and_draw_one_frame(void) {
         //pause_all_music();
       } break;
       case SCREEN_ENDING: {
+        update_ending();
       } break;
       default: UNREACHABLE("GameScreen unknown enum value"); break;
     }
@@ -717,15 +803,24 @@ void update_and_draw_one_frame(void) {
 //
 //, 0, 720 - 240, 30, WHITE);
 
-        if (dialogue_frame.line) {
-          draw_text(dialogue_frame.line, 0, 720 - 240, 30, WHITE);
+        if ( black_amnesia_anim > -10.0f) {
         } else {
-          draw_text("Nothing to say, sorry.", 0, 720 - 240, 30, WHITE);
+          if (dialogue_frame.line) {
+            draw_text(dialogue_frame.line, 10, 720 - 240, 30, WHITE);
+          } else {
+            draw_text("Nothing to say, sorry.", 10, 720 - 240, 30, WHITE);
+          }
         }
 
         draw_left_character(dialogue_frame.character_left, dialogue_frame.character_speaking == C_LEFT);
         draw_right_character(dialogue_frame.character_right,  dialogue_frame.character_speaking == C_RIGHT);
         draw_all_buttons();
+        if ( black_amnesia_anim > 0.0f) {
+          black_amnesia_anim -= 0.1f;
+          draw_circle(360,360,100.0f*black_amnesia_anim,BLACK);
+        } else if ( black_amnesia_anim > -10.0f) {
+          black_amnesia_anim -= 0.1f;
+        }
 
 
 
@@ -735,15 +830,20 @@ void update_and_draw_one_frame(void) {
         draw_book();
         current_screen = SCREEN_BOOK;
         draw_all_buttons();
+        draw_texture_centered_ex(exit_texture,(Vector2){660.0f,60.0f}, 1.0f, fade(WHITE,1.0f));
       } break;
       case SCREEN_BOOK_PAGE2: {
       } break;
       case SCREEN_SETTINGS: {
+
+        draw_texture(settings_background_texture, 0,0,WHITE);
         draw_all_buttons();
         
         draw_texture_centered_ex(settings_music_icon, button.settings_music_volume.position, settings.music_volume * 2.0f, WHITE);
+        draw_texture_centered_ex(exit_texture,(Vector2){660.0f,60.0f}, 1.0f, fade(WHITE,1.0f));
       } break;
       case SCREEN_ENDING: {
+        draw_ending();
       } break;
       default: UNREACHABLE("GameScreen unknown enum value"); break;
     }
@@ -783,18 +883,43 @@ void update_and_draw_one_frame(void) {
 }
 
 static void next_line() {
+
   u play_line = current_dialogue_line;
   dialogue_frame = dia_main[play_line];
   current_dialogue_line = dialogue_frame.next_line;
+  if (dialogue_frame.song != SONG_NULL ) {
+    play_song(dialogue_frame.song);
+    play_line = current_dialogue_line;
+    dialogue_frame = dia_main[play_line];
+    current_dialogue_line = dialogue_frame.next_line;
+  }
+
+  if (dialogue_frame.roll_credits) {
+    button.gameplay_to_story.not_active = true;
+    current_screen = SCREEN_ENDING;
+    return;
+  }
+
   if (!dialogue_frame.line) {
     current_screen = SCREEN_GAMEPLAY;
+
+    if (dialogue_frame.wait_for != HEX_NULL) {
+      if (dialogue_frame.after_wait_line == 0) {
+        // reveal
+
+        hex_reveal_rec(dialogue_frame.wait_for);
+      } else {
+        waiting_for = dialogue_frame.wait_for;
+        after_wait_line = dialogue_frame.after_wait_line;
+      }
+    }
   }
 }
 
-static void update_hexagon_button(HexagonButton* self) {
+static void update_hexagon_button(GameScreen screen, HexagonButton* self) {
   self->position = vector2_move_towards(self->position, self->target_position,fmaxf(vector2_distance(self->position, self->target_position)/10.0f,0.1f));
 
-  if (self->active_on == current_screen) {
+  if (self->active_on == screen) {
     bool in_range = check_collision_point_circle(input.pointer_position, self->position, self->radius - self->thickness) && !self->not_active;
     self->pressed  = input.pressed  && in_range;
     self->down     = input.down     && in_range;
@@ -845,9 +970,17 @@ static void draw_all_buttons() {
 }
 static void draw_gameplay_screen() {
   draw_texture(gameplay_background_texture, 0, 0, WHITE);
+  draw_texture(char_hand[dialogue_frame.character_right], 0, 0, WHITE);
   draw_all_buttons();
+  draw_texture_centered_ex(hex_icons[waiting_for], (Vector2){60.0f,60.0f}, 1.0f, fade(WHITE,1.0f));
+  draw_texture_centered_ex(settings_texture,(Vector2){660.0f,60.0f}, 1.0f, fade(WHITE,1.0f));
+  draw_texture_centered_ex(lens_texture,(Vector2){70.0f,480.0f}, 1.0f, fade(WHITE,1.0f));
+  
 }
 static void draw_title_screen() {
+  draw_texture(title_background_texture, 0,0,WHITE);
+
+  draw_texture_centered_ex(settings_texture, button.options.position, 3.0f, WHITE);
   draw_text("Hex A Merge", 30, 30, 100, WEAK_BLUE);
   //draw_hexagon((Vector2){450.0f, 332.0f}, 175.0f, 10.0f, 0.0f, WHITE,  BLACK);
 
@@ -872,7 +1005,7 @@ static void draw_title_screen() {
   draw_raylib_logo(70,500);
   draw_text("6.x", 290, 500 - 26, 280, BLACK);
   draw_text("GAMEJAM", 70 + 16 + 8, 500 + 16, 32, MAROON);
-  draw_text("hex\nmegre", 70 + 16 + 8, 500 + 16 + 32, 32,DARKPURPLE  );
+  draw_text("hex\nmerge", 70 + 16 + 8, 500 + 16 + 32, 32,DARKPURPLE  );
 }
 #ifdef _DEBUG
 static void draw_debug_overlay() {
@@ -921,7 +1054,7 @@ static void draw_hexagon_button(HexagonButton self) {
       } else if (self.hex.traits.count == 1) {
         // known hex
         HexTrait hex = da_first(&self.hex.traits);
-        if (hex_is_known[hex] ) {
+        if (hex_is_shown[hex] ) {
           draw_hex_trait( da_first(&self.hex.traits), self.position, 1.0f);
         } else {
         draw_hex_trait(HEX_NULL, self.position, 1.0f);
@@ -946,6 +1079,7 @@ static HexagonButton button_init_hex(Vector2 position, HexTrait starting_hex) {
   HexagonButton self = button_init_default(SCREEN_GAMEPLAY, position, 60.0f);
   da_push(&self.hex.traits, starting_hex);
   self.has_hex = true;
+  self.color_inside = PAPER_WHITE;
   return self;
 }
 static HexagonButton button_init_book(Vector2 position, HexTrait starting_hex) {
@@ -955,8 +1089,14 @@ static HexagonButton button_init_book(Vector2 position, HexTrait starting_hex) {
 }
 static HexagonButton button_init_playable(Vector2 position) {
   HexagonButton self = button_init_default(SCREEN_GAMEPLAY, position, 60.0f);
-  self.color_inside = fade(WHITE, 0.2f);
-  self.color_outside = fade(BLACK, 0.2f);
+  self.color_inside = fade(WHITE, 0.05f);
+  self.color_outside = fade(BLACK, 0.05f);
+  return self;
+}
+static HexagonButton button_init_color(GameScreen active_on, Vector2 position, float radius, Color color_inside, Color color_outside) {
+  HexagonButton self = button_init_default(active_on, position, radius);
+  self.color_inside = color_inside;
+  self.color_outside = color_outside;
   return self;
 }
 static HexagonButton button_init_default(GameScreen active_on, Vector2 position, float radius) {
@@ -968,7 +1108,7 @@ static HexagonButton button_init_default(GameScreen active_on, Vector2 position,
       .radius=radius,
       .thickness=10.0f,
       .rotation=0.0f,
-      .color_inside=(Color){ 0xDF, 0xAF, 0x5F, 0xFF },
+      .color_inside=WHITE,
       .color_outside=BLACK,
       .pressed=false,
       .down=false,
@@ -983,7 +1123,7 @@ static HexagonButton button_init_start_game_() {
       self.radius=175.0f;
       self.thickness=10.0f;
       self.rotation=0.0f;
-      self.color_inside=WHITE;
+      self.color_inside=PAPER_WHITE;
       self.color_outside=BLACK;
       self.pressed=false;
       self.down=false;
@@ -994,6 +1134,8 @@ static HexagonButton button_init_start_game_() {
 static void pause_all_music() {
     pause_music_stream(music_dark_shrine_loop_meta.music);
     pause_music_stream(music_going_deep_meta.music);
+    pause_music_stream(music_unforgiving_himalayas_meta.music);
+    pause_music_stream(music_forest_meta.music);
 }
 static void load_music_from_meta(MetaMusic *mm) {
     Music self = {0};
@@ -1017,6 +1159,18 @@ static void start_music_and_show_it(MetaMusic mm) {
   resume_music_stream(mm.music);
   music_to_show.music=mm;
   music_to_show.animation_timer=30.0f;
+}
+static void play_song(Song song) {
+  switch (song) {
+    case SONG_SHRINE: start_music_and_show_it(music_dark_shrine_loop_meta); break;
+    case SONG_DEEP: start_music_and_show_it(music_going_deep_meta); break;
+    case SONG_HIMA: start_music_and_show_it(music_unforgiving_himalayas_meta); break;
+    case SONG_FOREST: {
+                        start_music_and_show_it(music_forest_meta);
+                        black_amnesia_anim = 10.0f;
+    } break;
+    default: break;
+  }
 }
 static void draw_music_banner(int x, int y) {
   const char * to_write = text_format( "now playing: %s\nby: %s", music_to_show.music.title, music_to_show.music.author);
@@ -1043,7 +1197,9 @@ static void on_release_playable(int x, int y) {
         // space is taken, so we merge into owner
         hex_merge(&merge_into->hex, &gh->hex);
         if (merge_into->hex.traits.count == 1) {
-          hex_is_known[da_first(&merge_into->hex.traits)] = true;
+          HexTrait h = da_first(&merge_into->hex.traits);
+          //hex_is_known[h] = true;
+          hex_reveal_rec(h);
         }
         merge_into->position = gh->position;
         // now scary part, we MUST pop ourselves.
@@ -1072,7 +1228,9 @@ static void on_release_playable(int x, int y) {
         // space is taken, so we merge into owner
         hex_merge(&merge_into->hex, &to_push.hex);
         if (merge_into->hex.traits.count == 1) {
-          hex_is_known[da_first(&merge_into->hex.traits)] = true;
+          HexTrait h = da_first(&merge_into->hex.traits);
+          //hex_is_known[h] = true;
+          hex_reveal_rec(h);
         }
         merge_into->position = to_push.position;
       } else {
@@ -1098,9 +1256,26 @@ static void init_stage_1() {
   button.gameplay_grid_0_0.not_active = false;
   button.gameplay_grid_1_0.not_active = true;
 }
-static void new_hex(HexagonButton* button) {
-  button->hex = (Hex){0};
-  da_push(&button->hex.traits, random_available_hex());
+static void new_hex(HexagonButton* btn) {
+  btn->hex = (Hex){0};
+#ifdef    _DEBUG
+    da_push(&btn->hex.traits, waiting_for);
+    hex_is_shown[waiting_for] = true;
+    return;
+#endif // _DEBUG
+  if (&button.gameplay_draggable_hex_1 == btn) {
+    da_push(&btn->hex.traits, HEX_AGGRESION);
+  } else if (&button.gameplay_draggable_hex_2 == btn) {
+    da_push(&btn->hex.traits, HEX_BLIND);
+  } else if (&button.gameplay_draggable_hex_3 == btn) {
+    da_push(&btn->hex.traits, HEX_REVERSO);
+  } else if (&button.gameplay_draggable_hex_4 == btn) {
+    da_push(&btn->hex.traits, HEX_FLU);
+  } else if (&button.gameplay_draggable_hex_5 == btn) {
+    da_push(&btn->hex.traits, HEX_WEAK);
+  } else {
+    da_push(&btn->hex.traits, random_available_hex());
+  }
 }
 
 static HexTrait random_available_hex() {
@@ -1215,6 +1390,138 @@ static void draw_left_character(Character c, bool is_speaking) {
 }
 static void draw_right_character(Character c, bool is_speaking) {
   draw_character(c, false, is_speaking);
+}
+static void hex_reveal_rec(HexTrait hex) {
+  hex_is_shown[hex] = true;
+
+  HexTrait* ingridients = merge_crafts[hex];
+  for (;*ingridients!=HEX_NULL;++ingridients) {
+    if (!hex_is_shown[*ingridients]) {
+      hex_reveal_rec(*ingridients);
+    }
+  }
+}
+
+// :end
+
+#define MUSIC_FMT(mm) \
+  mm.title, \
+  mm.author, \
+  mm.license
+
+
+
+static void sbw_push_music(int* ending_pos_y, StringBuilderWrapper* sbw, MetaMusic mm) {
+  sb_push_fmt(&sbw->sb,
+    "%s\n"
+    "by %s \n"
+    "Licensed under: %s"
+    , MUSIC_FMT(mm)
+    );
+  Vector2 banner_dim = measure_text_ex(get_font_default(), sb_to_str(&sbw->sb), 30, 3);
+  sbw->screen_dim.x = 260;
+  sbw->screen_dim.y = *ending_pos_y;
+  sbw->screen_dim.width = banner_dim.x + 10;
+  sbw->screen_dim.height = banner_dim.y + 10;
+  sbw->link = mm.link;
+  *ending_pos_y += sbw->screen_dim.height ;
+}
+
+static void update_sbw(StringBuilderWrapper* sbw) {
+  if ( check_collision_point_rec(input.pointer_position, sbw->screen_dim) ) {
+    sbw->is_focused = true;
+    if ( input.pressed ) {
+      set_clipboard_text(sbw->link);
+    }
+    sbw->is_down = input.down;
+  } else {
+    sbw->is_focused = false;
+  }
+}
+static void update_ending() {
+  if (cinema) {
+    if (input.pressed) {
+      cinema=false;
+    }
+  } else {
+    update_sbw(&music_dark_shrine_loop_meta_sb);
+    update_sbw(&music_going_deep_meta_sb);
+    update_sbw(&music_forest_meta_sb);
+    update_sbw(&music_unforgiving_himalayas_meta_sb);
+
+
+
+    if ( check_collision_point_rec(input.pointer_position, (Rectangle){500,500,200,200} ) ) {
+      if ( input.pressed ) {
+        set_clipboard_text("https://www.raylib.com/");
+      }
+    }
+
+    if ( check_collision_point_rec(input.pointer_position, (Rectangle){0,0,240,720} ) ) {
+      if ( input.pressed ) {
+        cinema=true;
+      }
+    }
+
+  }
+
+}
+
+
+static void sbw_draw(StringBuilderWrapper* sbw) {
+  float intensity = 1.0f;
+  if (sbw->is_down) {
+    intensity = 1.5f;
+  } else if (sbw->is_focused) {
+    intensity = 2.0f;
+  } else {
+    intensity = 1.0f;
+  }
+  draw_rectangle_gradient_ex(sbw->screen_dim, fade(BLACK, intensity*0.1f), fade(BLACK, intensity*0.2), fade(BLACK, intensity*0.5), fade(BLACK, intensity*0.4));
+  draw_text(
+      sb_to_str(&sbw->sb)
+      , sbw->screen_dim.x+5, sbw->screen_dim.y+5, 30, WHITE
+      );
+}
+
+static void draw_ending() {
+  if (cinema) {
+    draw_texture(ending, 0, 0, WHITE);
+  } else {
+    draw_texture(ending, 0, 0, WHITE);
+    draw_rectangle(0+240,0,720-240,720, fade(BLACK, 0.5f));
+    //draw_text(REP99("credits credits credits\n"), 320, 0, 30, WHITE);
+
+
+    if (ending_sb.count ==0) {
+      sb_push_fmt(&ending_sb,
+        "     >>>Credits<<<\n"
+        );
+      int endy = 0;
+      sbw_push_music(&endy,&music_dark_shrine_loop_meta_sb ,music_dark_shrine_loop_meta);
+      sbw_push_music(&endy,&music_going_deep_meta_sb,music_going_deep_meta);
+      sbw_push_music(&endy,&music_forest_meta_sb,music_forest_meta);
+      sbw_push_music(&endy,&music_unforgiving_himalayas_meta_sb,music_unforgiving_himalayas_meta);
+    }
+    sbw_draw(&music_dark_shrine_loop_meta_sb);
+    sbw_draw(&music_going_deep_meta_sb);
+    sbw_draw(&music_forest_meta_sb);
+    sbw_draw(&music_unforgiving_himalayas_meta_sb);
+    draw_raylib_logo(500,500);
+
+
+    draw_text("Made with:", 260, 500 + 200 - 40 - 24, 40, WHITE);
+
+    draw_text(
+        "Press item in credits\n"
+        "to copy link to"
+        "\n clipboard\n\n"
+        "Press here to hide\n"
+        "credits\n"
+        "(again to return)"
+        , 10, 175, 20, BLACK);
+  }
+
 }
 
 #define UNROLL_BUTTONS_DEFINE_FUNCS(BUTTON_NAME,INIT,PRESSED,DOWN,RELEASED) \

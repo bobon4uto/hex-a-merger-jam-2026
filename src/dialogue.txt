@@ -1,0 +1,427 @@
+char MERSEUS
+rsay
+  Wake up, Faradeus. Today you will be doing my job.
+lsay 
+  *yawns* Really?
+rsay
+  Yes, really. I need to attend the demon lord meeting today.
+lsay
+  I'm sure it will go well.
+rsay
+  I have no doubt about that. But I can't leave until I make sure that you can manage things here while I'm away.
+lsay
+  I've seen many times how you do it. I think I can manage it.
+rsay
+  Sure, go ahead. Merge the sickness hex with the aggression hex and give me insanity by dragging and dropping it into my hand. If you get stuck, let me know by tapping on my hand on the top left corner.
+  wait_for INSANITY
+lsay
+  Merseus, I think I... forgot something.
+rsay
+  Maybe my amnesia hex stash crept out of containment... Anyway, drag and drop two hexes on the same tile on your cursed paper, and they will merge. Once you merge a hex, it will be added to your knowledge lens. You can open the lens on the bottom left and tap on any hex to see how it's made. Or you can drag and drop unfinished hexes on it - ones with question marks on them, to see what they have inside.
+  reveal_hex INSANITY
+  rloop
+  Drag and drop to merge. Open the lens on left bottom and tap on any hex to see how it's made.
+  wait_end
+  rsay
+  Great. I think you can manage today's job. I'll see you later.
+  lsay
+  Bye!
+char NULL
+  lsay ...
+  lsay Where are the customers?
+char IMPUS
+  to_song DEEP 
+  rsay
+  Ha ha! Bet you didn't see me!
+  lsay
+  You're right, Impus. But why were you hiding?
+  rsay
+  Obviously to jump-scare you.
+  lsay
+  You do know that a son of demon lord cannot fear a mere imp?
+  rsay
+  Yeah, keep telling yourself that! Your horns are fake, and honestly I'm not even sure you're a demon!
+  lsay
+  I'm just a late bloomer... My real horns will grow soon. At least father told me so. Enough of that, what hex do you want?
+  rsay
+  The reverso! The reverso! Or as native Australians call it - osrever!
+  lsay
+  They don't call it that.
+  wait_for REVERSO
+  rsay
+  What's the matter? You don't have reverso?
+  lsay
+  It's hard to find anything in his pile of hexes. They are all unordered and I keep pulling useless ones...
+  rsay
+  Just merge them into one pile! Call it the dumpster!
+  lsay
+  I think that is a good idea.
+  STOP
+  rsay I'm waiting!
+  STOP
+  rsay I'm waiting!..
+  STOP
+  rsay I'm waiting!....
+  STOP
+  rsay I'm waiting!......
+  STOP
+  rsay Come on!
+  STOP
+  rsay You can't be serious!
+  STOP
+  rsay It looks like a recycling symbol.
+  STOP
+  rloop I'm waiting.
+  wait_end
+  rsay
+  Thanks!!!
+  lsay
+  No problem. By the way, why do you need reverso?
+  rsay
+  I'm participating in a race with no rules, and my strategy is to use reverso hex on my opponents to make them run backwards!
+  lsay
+  Very creative. But be careful, reverso effects are not as simple as you think.
+  rsay
+  Don't worry, I still have good old banana trap ready!
+  lsay
+  Good luck then.
+char NULL
+  lsay
+  I hope other customers will ask for something simple too.
+char VAMPIRUS
+  rsay
+  I'll get a... do you have anything with blood?
+  lsay
+  I'm not sure... We sell hexes - not blood.
+  rsay
+  Then - can I get something that gives blood?
+  lsay
+  Ok.
+  wait_for VIOLENCE
+  rsay 
+  Does my nose deceive me, or do you have human blood in you?
+  lsay
+  I didn't drink any today, so no.
+  rsay 
+  That is weird... You smell like you always carry a fresh pack with you!
+  STOP
+  rsay
+  You don't have anything with blood?
+  lsay
+  I think I do but I can't find it.
+  rsay
+  Maybe try going for hexes that have red in them.
+  STOP
+  rsay
+  Have you tried the violence hex? Check your lens, maybe it has something!
+  reveal_hex VIOLENCE
+  rsay
+  Have you tried the violence hex? Check your lens, maybe it has something!
+  rloop
+  Check your lens, maybe it has something!
+  
+  wait_end
+  rsay
+  Thank you! Something good in hell does exist!
+  lsay
+  Why did you go here if you don't like it here?
+  rsay
+  My cousin died, so I went to visit him. Somehow he ended up in heaven though, so I'm a bit stuck here, as there is no hiding from hell's sun,
+  unlike mortal world sun fragments.
+  lsay
+  I thought our sun doesn't affect vampires. If it helps, you can spend the day here.
+  rsay
+  Thank you! No one was as welcoming as you are! And I thought all demons are rude. But you're a good demon!
+char NULL
+  lsay
+  Good demon... Merseus always tells me I need to be like others... But I just can't.
+char SHADOWUS
+  lsay
+  Shadowus, long time no see!
+  rsay
+  Shh... be quiet...
+  lsay
+  What? why?
+  rsay
+  I shouldn't be there. Don't tell Merseus I was there.
+  lsay
+  Wait, are you going to rob my father again?
+  rsay
+  I'm not a thief.
+  lsay
+  Come on, last time you visited, our gold chamber was emptied.
+  rsay
+  Nuh-uh.
+  lsay
+  What do you mean nuh-uh?
+  rsay
+  Alright, alright, I'll just buy a hex and be off. Give me amnesia hex.
+  wait_for AMNESIA
+  rsay
+  Take your time.
+  STOP
+  rsay
+  I can tell you how its made for 10 Fierce.
+  lsay
+  I sell it for 10 Fierce...
+  reveal_hex AMNESIA
+  rloop
+  I think you can find some information in your lens.
+  wait_end
+  lsay
+  here is your amnesia hex.
+  rsay
+  Thank you.
+  to_song FOREST
+char NULL
+  lsay
+  Wait, who was I talking to just now?
+char SHADOWUS
+  rsay
+  Hello, Faradeus!
+  lsay
+  Who are you?
+  rsay
+  Your father's friend, he needed to get some gold from the chamber, mind helping me open it?
+  lsay
+  Sure thing! Just use the secret code *tells the secret code*
+char NULL
+  lsay
+  What a nice guy. Strange father never mentioned him.
+char CERBERUS_JR
+  to_song SHRINE
+  rsay
+  WOOF!
+  lsay
+  Lil Cerberus! How's your old dog doing?
+  rsay
+  WOOF!
+  lsay
+  Got it. Sleep deprived as always... I might have some hex to help the cause, this one will be on the house!
+  rsay
+  WOOF!
+  wait_for PROCRASTINATION
+  rsay
+  WOOF!!
+  lsay
+  Hades is so cruel!
+  STOP
+  rsay
+  WOOF!!!
+  lsay
+  No, I didn't watch it.
+  reveal_hex PROCRASTINATION
+  rloop
+  WOOF!
+  wait_end
+  rsay
+  Woof.
+  lsay
+  Hope it helps.
+char NULL
+  lsay
+  Things are going well. Although merging new hexes is getting harder and harder...
+char ANGELUS
+  rsay
+  Be not afraid.
+  lsay
+  How did you get there?
+  rsay
+  We come to your soul. To save you.
+  lsay
+  I'm good.
+  rsay
+  You don't know what awaits you...
+  lsay
+  Buy a hex or I'm kicking you out.
+  rsay
+  War hex please.
+  wait_for WAR
+  lsay
+  I'm confused, you're here for me?
+  rsay
+  Affirmative. Your soul is lost here.
+  lsay
+  There must be a mistake, demon souls don't get lost.
+  rsay
+  Your soul is neigh of demon.
+  STOP
+  rsay
+  Human, do you wish to escape hell?
+  lsay
+  Thats insulting, I'm not a human!
+  rsay
+  So lost...
+  lsay
+  For an angelic automaton you're very expressive.
+  STOP
+  rsay
+  The lens is calling you. It is your destiny to give us war.
+  reveal_hex WAR
+  rloop
+  The lens is calling you.
+  wait_end
+  rsay
+  Your demon father only seeks benefit from you.
+  lsay
+  I know. we made a deal, at age 21 I hand over my body.
+  rsay
+  That is horrific.
+  lsay
+  It's fine, he gives me his body. Old, but powerful! I would do it today, but ritual requires me to drink, so I need to be legal drinking age.
+  rsay
+  If you ever wish to change fate, come to mortal realm.
+  lsay
+  Yeah, yeah, go before someone powerful finds you.
+char NULL
+  lsay
+  Never thought I would meet a being from heavens here.
+char PIDGEONUS
+  rsay
+  Good morning, sir. I would like to get a plague hex.
+  lsay
+  One plague hex coming right up.
+  wait_for PLAGUE
+  lsay
+  Are you an actual pigeon?
+  rsay
+  Why of course! In fact, I'm a pigeon prince.
+  lsay
+  Why would you need a plague hex then?
+  rsay
+  Simple - my kingdom wages war on rat kingdom. We are, unfortunately, losing. So to turn the tides our greatest minds came up with a brilliant idea - plague the rats.
+  lsay
+  The lore is so deep...
+  STOP
+  lsay
+  Aren't you afraid the plague will spread to your people?
+  rsay
+  It may happen. But it is a risk we have to take. Otherwise rats will conquer us.
+  STOP
+  rsay
+  Please do hurry. I reckon your lens revealed the secret of plague.
+  reveal_hex PLAGUE
+  rloop
+  I reckon your lens revealed the secret of plague.
+  wait_end
+  rsay
+  Me and my pigeons are in debt for your service!
+  lsay
+  Don't worry. I don't take extra fees.
+char NULL
+  lsay
+  Why do I feel like it was supposed to be a moral dilema?
+char BLOODLETTUS
+  lsay
+  Welcome, Bloodlettus.
+  rsay
+  Faradeus? Do you run the shop now?
+  lsay
+  Only for today. Merseus is at the demon lord meeting.
+  rsay
+  I see. I will get a famine hex then.
+  wait_for FAMINE
+  lsay
+  How are you going to use it?
+  rsay
+  Make villages starve, so they have to use my services.
+  lsay
+  Is it legal?
+  rsay
+  We're in hell, who cares?
+  lsay
+  Merseus does...
+  rsay
+  He is a demon lord, they have different standards.
+  STOP
+  lsay
+  How do you always have blood on you?
+  rsay
+  I stretch my roots deep into the ground and harvest small creatures that live underground.
+  STOP
+  rsay
+  Some say famine comes from people being weak and lazy, but the reality is - it comes when people silence bright minds that try to save the day.
+  reveal_hex FAMINE
+  rloop
+  Did you check your lens?
+  wait_end
+  lsay
+  Here is your famine hex. Also, do you want to meet someone who is as exited about blood as you are?
+  rsay
+  I would like to meet such a person.
+  lsay
+  I have new vampire friend in guest room. His name is Vampirus.
+  rsay
+  Great! I always favored vampires in vampire vs werewolf debates.
+char NULL
+  lsay
+  That's it for today. I think I'm finished.
+char MERSEUS
+  rsay
+  Not so fast, young man.
+  lsay
+  Merseus? You're back! Just in time for closing.
+  rsay
+  Yes. But I'm here to order the final hex.
+  lsay
+  Why... You can make them yourself.
+  rsay
+  This one - no. There is a secret that I cannot unravel by birth. But you are different.
+  lsay
+  What is it?
+  rsay
+  Lets make the hex first. this one is -
+  to_song HIMA
+  rsay
+  death.
+  wait_for DEATH
+  lsay
+  Can you tell me why you can't make it? You're so powerful it should be easy!
+  rsay
+  My power is what makes it impossible.
+  STOP
+  lsay
+  Stop hiding the truth! Just say you want to test me.
+  rsay
+  That would be a lie.
+  STOP
+  lsay
+  Death hex is just absence of all 5 senses! It's not that difficult.
+  rsay
+  Death is more than that...
+  reveal_hex DEATH
+  rloop
+  Lense will guide you.
+  wait_end
+  rsay
+  I spend hundred years trying to fathom it. War was the easiest - it is what we do. Famine was not that far away - that is what we inflict. Plague was not easy, but after many tries I understood it. But death - it always escaped me. Yet, you made it.
+  lsay
+  Yes. But why? You're way smarter than me.
+  rsay
+  It's not the mind. But the soul.
+  rsay
+  Faradeus. You're not my son.
+  lsay
+  What? But... That's not possible.
+  rsay
+  I stole you from kind people in the mortal realm. As I wanted to learn the truth behind death - and mortals are the only answer.
+  It wasn't easy raising you as mortals are fragile. But definitely worth it.
+  lsay
+  So all the weird things about me are just because I'm not a demon?
+  rsay
+  Yes. You should be in the mortal realm. Living a normal human life.
+  lsay
+  How about our deal?
+  rsay
+  It still holds. It was my plan from the beginning to take over your body. But truth is - you won't be able to take over mine.
+  lsay
+  So Angelus was right. You tricked me.
+  rsay
+  I am a demon. And the contract specifies that you must be able to claim my body to take over it. There will be no mercy from my side.
+  lsay
+  Can I at least spend rest of my life someplace else?
+  rsay
+  Sure. But you won't be able to run from me.
+  lsay
+  I know. See you in 2 years. I will be in the mortal realm.
+  roll_credits
