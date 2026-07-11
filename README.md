@@ -1,6 +1,6 @@
 ## Hex a merger
 
-![Hex a merger](screenshots/title.png "Hex a merger")
+![Hex a merger](screenshots/header.png "Hex a merger")
 
 ### Description
 
@@ -22,6 +22,7 @@ Mouse and touch:
 
 ### Screenshots
 
+![Hex a merger](screenshots/title.png "Hex a merger")
 ![Dialogue](screenshots/merseus_talk.png "dialogue")
 ![Gameplay](screenshots/messy.png "gameplay")
 ![Uninvited guests](screenshots/shadows.png "uninvited guests")
