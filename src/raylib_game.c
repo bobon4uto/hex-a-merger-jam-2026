@@ -669,6 +669,9 @@ void update_and_draw_one_frame(void) {
   } else if (is_key_down(KEY_O)) {
     controlled_float -= move_speed_of_controlled_values;
   }
+  if ( is_key_pressed(KEY_E) ) {
+    current_screen = SCREEN_ENDING;
+  }
 #endif // _DEBUG
 
 
@@ -1428,14 +1431,14 @@ static void sbw_push_music(int* ending_pos_y, StringBuilderWrapper* sbw, MetaMus
 }
 
 static void update_sbw(StringBuilderWrapper* sbw) {
+  sbw->is_focused = false;
+  sbw->is_down = false;
   if ( check_collision_point_rec(input.pointer_position, sbw->screen_dim) ) {
     sbw->is_focused = true;
     if ( input.pressed ) {
       set_clipboard_text(sbw->link);
     }
     sbw->is_down = input.down;
-  } else {
-    sbw->is_focused = false;
   }
 }
 static void update_ending() {
