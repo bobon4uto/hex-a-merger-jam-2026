@@ -35,8 +35,7 @@ Mouse and touch:
 ### Links
 
  - YouTube Gameplay: https://youtu.be/e33u5_K1584
- - itch.io Release: 
-<iframe frameborder="0" src="https://itch.io/embed/4753497" width="552" height="167"><a href="https://bobon4uto.itch.io/hex-a-merger">hex a merger by bobon4uto</a></iframe>
+ - itch.io Release: https://bobon4uto.itch.io/hex-a-merger
 
 ### License
 
